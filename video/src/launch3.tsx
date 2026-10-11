@@ -8,7 +8,8 @@ import cut from './cut.json';
 export const FPS3 = 30;
 const BEAT = 60 / cut.bpm;                         // seconds per beat
 const b = (n: number) => Math.round((cut.firstBeat + n * BEAT) * FPS3) - Math.round(cut.firstBeat * FPS3);
-const paper = '#F9FAF7', ink = '#202A2E', dot = '#EE5F27', mute = 'rgba(32,42,46,.5)';
+const paper = '#F9FAF7', ink = '#202A2E', dot = '#365b71', mute = '#56636a', sky = '#C7DEEC', warm = '#F3E7DD';
+const air = `linear-gradient(180deg, #e5eff3 0%, ${paper} 55%, ${warm} 100%)`;
 const sf = '"SF Pro Display", -apple-system, system-ui, sans-serif';
 const serif = '"Bree Serif", serif';
 const css = `@font-face{font-family:"Bree Serif";src:url(${staticFile('v2/BreeSerif-Regular.woff2')}) format("woff2");}`;
@@ -33,12 +34,12 @@ const T = {
 };
 export const LAUNCH3_FRAMES = b(T.done);
 
-function Words({children, at, size = 200, color = ink, font = sf, weight = 700, delay = 0}: {children: React.ReactNode; at: number; size?: number; color?: string; font?: string; weight?: number; delay?: number}) {
+function Words({children, at, size = 200, color = ink, font = serif, weight = 400, delay = 0}: {children: React.ReactNode; at: number; size?: number; color?: string; font?: string; weight?: number; delay?: number}) {
   const p = pop(useCurrentFrame() - at - delay);
   return <div style={{fontFamily: font, fontWeight: weight, fontSize: size, color, letterSpacing: font === sf ? '-0.045em' : '-0.02em', lineHeight: 1, opacity: p, transform: `translateY(${(1 - p) * 90}px) scale(${0.96 + 0.04 * p})`, filter: `blur(${(1 - p) * 16}px)`}}>{children}</div>;
 }
 
-function Card({from, to, bg = paper, children}: {from: number; to: number; bg?: string; children: React.ReactNode}) {
+function Card({from, to, bg = air, children}: {from: number; to: number; bg?: string; children: React.ReactNode}) {
   const frame = useCurrentFrame();
   if (frame < from || frame >= to) return null;
   return <AbsoluteFill style={{background: bg, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 34, textAlign: 'center'}}>{children}</AbsoluteFill>;
@@ -52,7 +53,7 @@ function Hook({from, to}: {from: number; to: number}) {
   const raw = l * 0.3;
   const n = raw < 30 ? raw : raw < 36 ? 30 : raw < 40 ? 30 - (raw - 36) : 26 + (raw - 40);
   const p = pop(l, 18);
-  return <AbsoluteFill style={{background: paper, alignItems: 'center', justifyContent: 'center'}}>
+  return <AbsoluteFill style={{background: air, alignItems: 'center', justifyContent: 'center'}}>
     <div style={{width: 1320, borderRadius: 44, background: '#fff', padding: '48px 60px 44px', boxShadow: '0 50px 140px rgba(32,42,46,.18), 0 0 0 1px rgba(32,42,46,.06)', opacity: p, transform: `scale(${0.92 + 0.08 * p})`}}>
       <div style={{display: 'flex', alignItems: 'center', gap: 18, marginBottom: 26}}>
         <Img src={staticFile('v2/icons/mail.png')} style={{width: 56, height: 56}} />
@@ -76,7 +77,7 @@ function Montage({at}: {at: number}) {
       const p = pop(frame - at - i * half, 11, 220);
       return <Img key={i} src={staticFile(`v2/icons/${n}.png`)} style={{width: 200, height: 200, borderRadius: 44, objectFit: 'contain', opacity: p, transform: `scale(${0.5 + 0.5 * p}) translateY(${(1 - p) * 60}px)`, filter: 'drop-shadow(0 24px 34px rgba(32,42,46,.2))'}} />;
     })}</div>
-    <div style={{fontFamily: sf, fontWeight: 700, fontSize: 130, letterSpacing: '-0.045em', color: ink, marginTop: 30}}>in <span style={{color: dot}}>{MORE_NAMES[shown - 1]}</span>.</div>
+    <div style={{fontFamily: serif, fontSize: 130, color: ink, marginTop: 30}}>in <span style={{color: dot}}>{MORE_NAMES[shown - 1]}</span>.</div>
   </>;
 }
 function Icons({at}: {at: number}) {
@@ -129,7 +130,7 @@ function Live() {
     </AbsoluteFill>
     {shot && <div style={{position: 'absolute', left: 56, top: 56, display: 'flex', alignItems: 'center', gap: 24, padding: '20px 44px 20px 24px', background: paper, borderRadius: 40, boxShadow: '0 30px 80px rgba(20,30,40,.3)', opacity: tag, transform: `translateX(${(1 - tag) * -60}px)`}}>
       <Img src={staticFile(`v2/icons/${shot.icon}.png`)} style={{width: 112, height: 112}} />
-      <div style={{fontFamily: sf, fontWeight: 700, fontSize: 88, letterSpacing: '-0.04em', color: ink}}>{shot.line}</div>
+      <div style={{fontFamily: serif, fontSize: 84, color: ink}}>{shot.line}</div>
     </div>}
     {shot && <div style={{position: 'absolute', right: 34, bottom: 28, fontFamily: sf, fontSize: 20, color: 'rgba(255,255,255,.9)', background: 'rgba(32,42,46,.55)', padding: '7px 14px', borderRadius: 999}}>product preview · synthetic data</div>}
   </AbsoluteFill>;
@@ -175,11 +176,11 @@ function Race({at}: {at: number}) {
     <div style={{height: 40, borderRadius: 20, background: 'rgba(32,42,46,.08)'}}><div style={{height: '100%', width: `${(v / 129) * 100}%`, borderRadius: 20, background: color}} /></div>
   </div>;
   const win = pop(l - b(3.5), 10);
-  return <AbsoluteFill style={{background: paper, alignItems: 'center', justifyContent: 'center'}}>
+  return <AbsoluteFill style={{background: air, alignItems: 'center', justifyContent: 'center'}}>
     <div style={{fontFamily: sf, fontSize: 34, fontWeight: 600, letterSpacing: '.18em', color: mute, marginBottom: 70}}>THE SAME 86 WORDS</div>
     {row(spoken, 'saying it', dot, '')}
-    {row(typed, 'typing it at 40 wpm', '#9aa7ae', '')}
-    <div style={{fontFamily: sf, fontWeight: 800, fontSize: 210, letterSpacing: '-0.06em', color: dot, opacity: win, transform: `scale(${0.6 + 0.4 * win})`}}>3.6× faster</div>
+    {row(typed, 'typing it at 40 wpm', sky, '')}
+    <div style={{fontFamily: serif, fontWeight: 400, fontSize: 200, letterSpacing: '-0.02em', color: dot, opacity: win, transform: `scale(${0.6 + 0.4 * win})`}}>3.6× faster</div>
   </AbsoluteFill>;
 }
 
@@ -198,8 +199,8 @@ export function Launch3() {
       <Words at={b(T.ai)} size={170} delay={10}>ai writing</Words>
     </Card>
     <Card from={b(T.ai + 2.5)} to={b(T.say)}><Words at={b(T.ai + 2.5)} size={230} color={dot}>sounds like ai.</Words><Words at={b(T.ai + 2.5)} size={90} weight={600} color={mute} delay={8}>not like you.</Words></Card>
-    <Card from={b(T.say)} to={b(T.messages)} bg={ink}>
-      <div style={{width: 130, height: 130, borderRadius: 99, background: dot, transform: `scale(${pop(frame - b(T.say), 8) * (1 + 0.1 * Math.sin(frame / 3))})`, boxShadow: '0 0 90px rgba(238,95,39,.6)'}} />
+    <Card from={b(T.say)} to={b(T.messages)} bg={dusk}>
+      <div style={{width: 110, height: 110, borderRadius: 99, background: paper, transform: `scale(${pop(frame - b(T.say), 8) * (1 + 0.08 * Math.sin(frame / 3))})`, boxShadow: '0 0 80px rgba(249,250,247,.7)'}} />
       <Words at={b(T.say)} size={190} color={paper} delay={5}>hold a key. say it.</Words>
     </Card>
     <Card from={b(T.all)} to={b(T.all + 4)} bg={land}>
@@ -216,12 +217,12 @@ export function Launch3() {
     <Card from={b(T.everyone + 2)} to={b(T.model)}><Words at={b(T.everyone + 2)} size={230} color={dot}>is everyone.</Words></Card>
     <Card from={b(T.model)} to={b(T.end)} bg={night}>
       <div style={{fontFamily: sf, fontSize: 34, fontWeight: 600, letterSpacing: '.2em', color: 'rgba(249,250,247,.55)', opacity: pop(frame - b(T.model))}}>WHAT WE’RE BUILDING</div>
-      <Words at={b(T.model)} size={200} color={paper}>the model of <span style={{color: dot}}>you.</span></Words>
+      <Words at={b(T.model)} size={200} color={paper}>the model of <span style={{color: sky}}>you.</span></Words>
       <Words at={b(T.model)} size={60} weight={500} color="rgba(249,250,247,.75)" delay={12}>our own models that learn your voice, and get better with every message.</Words>
     </Card>
     {GIVES.map(([a, c], i) => <Card key={a} from={b(T.gives + i * 2)} to={b(T.gives + i * 2 + 2)} bg={i === 4 ? dusk : paper}>
       <Words at={b(T.gives + i * 2)} size={150} color={i === 4 ? paper : ink}>{a}</Words>
-      <Words at={b(T.gives + i * 2)} size={150} color={i === 4 ? '#FFE3CF' : dot} delay={4}>{c}</Words>
+      <Words at={b(T.gives + i * 2)} size={150} color={i === 4 ? sky : dot} delay={4}>{c}</Words>
     </Card>)}
     {frame >= b(T.race) && frame < b(T.everyone) && <Race at={b(T.race)} />}
     <Card from={b(T.end)} to={LAUNCH3_FRAMES + 1} bg={land}>
