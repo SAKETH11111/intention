@@ -1,6 +1,7 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {AbsoluteFill, Audio, Easing, Img, cancelRender, continueRender, delayRender, interpolate, spring, staticFile, useCurrentFrame} from 'remotion';
 import cut from './cut.json';
+import scenes from '../public/stage/scenes.json';
 
 // Launch cut, structured like the reference: a typed hook, one-beat type cards, floating real UI,
 // the product moment in four apps, the proof, the wordmark. Every cut lands on a beat of the track.
@@ -23,6 +24,8 @@ const GIVES = [
   ['no more', 'rewriting.'],
   ['no blank box.', 'no ai tone.'],
   ['every place you write', 'gets better.'],
+  ['no copy. no paste.', 'no new app.'],
+  ['lowercase for leo.', 'full sentences for marcus.'],
   ['and it gets more like you', 'every message.'],
 ];
 
@@ -30,7 +33,7 @@ const GIVES = [
 const T = {
   hook: 0, write: 6, apps: 8, ai: 10, say: 15,
   messages: 18, slack: 30, gmail: 42, notes: 58,
-  all: 68, learns: 80, voice: 84, gives: 92, race: 102, everyone: 108, model: 112, end: 120, done: 132,
+  all: 68, learns: 80, voice: 84, gives: 92, race: 106, everyone: 112, model: 116, end: 124, done: 136,
 };
 export const LAUNCH3_FRAMES = b(T.done);
 
@@ -121,19 +124,41 @@ function Live() {
   }, [loaded, id, local, handle]);
   const t = shot ? (frame - b(shot.from)) / FPS3 : 0;
   const len = shot ? (b(shot.to) - b(shot.from)) / FPS3 : 1;
-  const zoom = shot ? interpolate(t, [0, len], [1.02, shot.zoom], {easing: Easing.inOut(Easing.cubic)}) : 1;
+  const zoom = shot ? interpolate(t, [0, len], [1.0, 1.06], {easing: Easing.inOut(Easing.cubic)}) : 1;
+  const tilt = shot ? interpolate(t, [0, len], [-3, 2]) : 0;
   const enter = shot ? pop(frame - b(shot.from), 18) : 0;
   const tag = shot ? pop(frame - b(shot.from) - 6, 13) : 0;
   return <AbsoluteFill style={{opacity: shot ? 1 : 0}}>
-    <AbsoluteFill style={{transform: `scale(${zoom * (0.94 + 0.06 * enter)})`, transformOrigin: shot?.origin}}>
+    <AbsoluteFill style={{transform: `perspective(2600px) rotateY(${tilt}deg) scale(${zoom * (0.92 + 0.08 * enter)}) translateY(${(1 - enter) * 60}px)`, transformOrigin: '50% 50%'}}>
       <iframe ref={iframe} src={`${staticFile('stage/index.html')}?render=1`} onLoad={() => setLoaded(true)} style={{border: 0, width: '100%', height: '100%'}} />
     </AbsoluteFill>
     {shot && <div style={{position: 'absolute', left: 56, top: 56, display: 'flex', alignItems: 'center', gap: 24, padding: '20px 44px 20px 24px', background: paper, borderRadius: 40, boxShadow: '0 30px 80px rgba(20,30,40,.3)', opacity: tag, transform: `translateX(${(1 - tag) * -60}px)`}}>
       <Img src={staticFile(`v2/icons/${shot.icon}.png`)} style={{width: 112, height: 112}} />
       <div style={{fontFamily: serif, fontSize: 84, color: ink}}>{shot.line}</div>
     </div>}
+    {shot && <Voice id={shot.id} local={local} />}
     {shot && <div style={{position: 'absolute', right: 34, bottom: 28, fontFamily: sf, fontSize: 20, color: 'rgba(255,255,255,.9)', background: 'rgba(32,42,46,.55)', padding: '7px 14px', borderRadius: 999}}>product preview · synthetic data</div>}
   </AbsoluteFill>;
+}
+
+// While the cue is being spoken: a live waveform and the words, landing one by one, big enough to read.
+function Voice({id, local}: {id: string; local: number}) {
+  const frame = useCurrentFrame();
+  const said = (scenes.scenes.find(s => s.id === id)?.said ?? '').split(/\s+/).filter(Boolean);
+  const tm = scenes.timing;
+  const start = 0.25, endSpeak = start + tm.firstWord + (said.length - 1) * tm.word + tm.beat;
+  const n = local < start ? 0 : Math.min(said.length, Math.floor((local - start - tm.firstWord) / tm.word) + 1);
+  const on = local >= start && local < endSpeak + 0.3;
+  const p = interpolate(local, [start - 0.1, start + 0.2, endSpeak, endSpeak + 0.3], [0, 1, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  if (!on) return null;
+  const shown = said.slice(Math.max(0, n - 9), n).join(' ');
+  return <div style={{position: 'absolute', left: '50%', bottom: 70, transform: `translateX(-50%) translateY(${(1 - p) * 40}px)`, opacity: p, display: 'flex', alignItems: 'center', gap: 30, background: 'rgba(249,250,247,.96)', borderRadius: 999, padding: '22px 46px 22px 30px', boxShadow: '0 30px 90px rgba(20,30,40,.3)', maxWidth: 1600}}>
+    <div style={{display: 'flex', alignItems: 'center', gap: 7, height: 70}}>{Array.from({length: 9}, (_, i) => {
+      const h = 14 + 52 * Math.abs(Math.sin(frame / 3.2 + i * 1.3) * Math.sin(frame / 7 + i * 0.7));
+      return <div key={i} style={{width: 8, height: h, borderRadius: 4, background: dot}} />;
+    })}</div>
+    <div style={{fontFamily: serif, fontSize: 56, color: ink, whiteSpace: 'nowrap'}}>“{shown}”</div>
+  </div>;
 }
 
 function Float({src, at, w, x, y, rot, delay = 0}: {src: string; at: number; w: number; x: number; y: number; rot: number; delay?: number}) {
@@ -177,10 +202,10 @@ function Race({at}: {at: number}) {
   </div>;
   const win = pop(l - b(3.5), 10);
   return <AbsoluteFill style={{background: air, alignItems: 'center', justifyContent: 'center'}}>
-    <div style={{fontFamily: sf, fontSize: 34, fontWeight: 600, letterSpacing: '.18em', color: mute, marginBottom: 70}}>THE SAME 86 WORDS</div>
+    <div style={{fontFamily: sf, fontSize: 34, fontWeight: 600, letterSpacing: '.18em', color: mute, marginBottom: 70}}>THE SAME FOUR REPLIES</div>
     {row(spoken, 'saying it', dot, '')}
-    {row(typed, 'typing it at 40 wpm', sky, '')}
-    <div style={{fontFamily: serif, fontWeight: 400, fontSize: 200, letterSpacing: '-0.02em', color: dot, opacity: win, transform: `scale(${0.6 + 0.4 * win})`}}>3.6× faster</div>
+    {row(typed, 'typing it', sky, '')}
+    <div style={{fontFamily: serif, fontWeight: 400, fontSize: 200, letterSpacing: '-0.02em', color: dot, opacity: win, transform: `scale(${0.6 + 0.4 * win})`}}>about 4× faster</div>
   </AbsoluteFill>;
 }
 
@@ -220,9 +245,9 @@ export function Launch3() {
       <Words at={b(T.model)} size={200} color={paper}>the model of <span style={{color: sky}}>you.</span></Words>
       <Words at={b(T.model)} size={60} weight={500} color="rgba(249,250,247,.75)" delay={12}>our own models that learn your voice, and get better with every message.</Words>
     </Card>
-    {GIVES.map(([a, c], i) => <Card key={a} from={b(T.gives + i * 2)} to={b(T.gives + i * 2 + 2)} bg={i === 4 ? dusk : paper}>
-      <Words at={b(T.gives + i * 2)} size={150} color={i === 4 ? paper : ink}>{a}</Words>
-      <Words at={b(T.gives + i * 2)} size={150} color={i === 4 ? sky : dot} delay={4}>{c}</Words>
+    {GIVES.map(([a, c], i) => <Card key={a} from={b(T.gives + i * 2)} to={b(T.gives + i * 2 + 2)} bg={i === GIVES.length - 1 ? dusk : air}>
+      <Words at={b(T.gives + i * 2)} size={150} color={i === GIVES.length - 1 ? paper : ink}>{a}</Words>
+      <Words at={b(T.gives + i * 2)} size={150} color={i === GIVES.length - 1 ? sky : dot} delay={4}>{c}</Words>
     </Card>)}
     {frame >= b(T.race) && frame < b(T.everyone) && <Race at={b(T.race)} />}
     <Card from={b(T.end)} to={LAUNCH3_FRAMES + 1} bg={land}>
