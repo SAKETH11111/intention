@@ -14,12 +14,22 @@ const serif = '"Bree Serif", serif';
 const css = `@font-face{font-family:"Bree Serif";src:url(${staticFile('v2/BreeSerif-Regular.woff2')}) format("woff2");}`;
 const pop = (frame: number, damping = 14, stiffness = 190) => spring({frame, fps: FPS3, config: {damping, stiffness}});
 const land = `url(${staticFile('v2/intention-landscape-approved.webp')}) center/cover`;
+const dusk = `linear-gradient(rgba(20,24,40,.5), rgba(20,24,40,.5)), url(${staticFile('v2/intention-landscape-dusk.webp')}) center/cover`;
+const night = `linear-gradient(rgba(10,14,30,.45), rgba(10,14,30,.55)), url(${staticFile('v2/intention-landscape-night.webp')}) center/cover`;
+// What it gives you beyond speed, one beat each.
+const GIVES = [
+  ['you sound like you.', 'everywhere.'],
+  ['no more', 'rewriting.'],
+  ['no blank box.', 'no ai tone.'],
+  ['every place you write', 'gets better.'],
+  ['and it gets more like you', 'every message.'],
+];
 
 // Timeline in beats.
 const T = {
   hook: 0, write: 6, apps: 8, ai: 10, say: 15,
   messages: 18, slack: 30, gmail: 42, notes: 58,
-  all: 68, learns: 80, voice: 84, race: 92, everyone: 98, model: 102, end: 110, done: 122,
+  all: 68, learns: 80, voice: 84, gives: 92, race: 102, everyone: 108, model: 112, end: 120, done: 132,
 };
 export const LAUNCH3_FRAMES = b(T.done);
 
@@ -204,11 +214,15 @@ export function Launch3() {
     <Card from={b(T.voice)} to={b(T.race)}><Words at={b(T.voice)} size={150}>in <span style={{color: dot}}>your</span> voice.</Words><Voices at={b(T.voice)} /></Card>
     <Card from={b(T.everyone)} to={b(T.everyone + 2)}><Words at={b(T.everyone)} size={170}>everyone who writes</Words></Card>
     <Card from={b(T.everyone + 2)} to={b(T.model)}><Words at={b(T.everyone + 2)} size={230} color={dot}>is everyone.</Words></Card>
-    <Card from={b(T.model)} to={b(T.end)} bg={ink}>
+    <Card from={b(T.model)} to={b(T.end)} bg={night}>
       <div style={{fontFamily: sf, fontSize: 34, fontWeight: 600, letterSpacing: '.2em', color: 'rgba(249,250,247,.55)', opacity: pop(frame - b(T.model))}}>WHAT WE’RE BUILDING</div>
       <Words at={b(T.model)} size={200} color={paper}>the model of <span style={{color: dot}}>you.</span></Words>
       <Words at={b(T.model)} size={60} weight={500} color="rgba(249,250,247,.75)" delay={12}>our own models that learn your voice, and get better with every message.</Words>
     </Card>
+    {GIVES.map(([a, c], i) => <Card key={a} from={b(T.gives + i * 2)} to={b(T.gives + i * 2 + 2)} bg={i === 4 ? dusk : paper}>
+      <Words at={b(T.gives + i * 2)} size={150} color={i === 4 ? paper : ink}>{a}</Words>
+      <Words at={b(T.gives + i * 2)} size={150} color={i === 4 ? '#FFE3CF' : dot} delay={4}>{c}</Words>
+    </Card>)}
     {frame >= b(T.race) && frame < b(T.everyone) && <Race at={b(T.race)} />}
     <Card from={b(T.end)} to={LAUNCH3_FRAMES + 1} bg={land}>
       <Img src={staticFile('assets/intention-wordmark.svg')} style={{height: 250, opacity: endP, transform: `scale(${0.85 + 0.15 * endP})`}} />
