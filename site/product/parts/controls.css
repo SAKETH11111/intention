@@ -1,0 +1,23 @@
+/* The hand-drawn rule under headings and calls to action: one pen width with a slight waver,
+   drawn once in 180 ms (day.js writes the path). Undrawn, the dash sits just off the path, so the
+   round cap leaves no dot at either end. */
+.hand-rule { position: absolute; left: -2px; bottom: 2px; width: calc(100% + 4px); height: 6px; overflow: visible; pointer-events: none; }
+.hand-rule path { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 1 2; stroke-dashoffset: 1.05; transition: stroke-dashoffset 180ms cubic-bezier(.2,.8,.2,1); }
+@media (prefers-reduced-motion: reduce) { .hand-rule path { transition: none; } }
+
+/* The seat button from the design foundation (the waitlist's Copy link uses it). No capsules, glass or
+   gradients: a button is a flat face on a seat, a 1.5 px line of darker ink
+   under it (2 px under a primary). Pressed, the face drops onto the seat in
+   90 ms; released, it springs back slightly past rest. Radius 7. */
+.seat-btn {
+  appearance: none; border: 0; margin: 0;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; padding: 0 18px; border-radius: 7px;
+  font: 600 15px/1 "DM Sans", sans-serif; letter-spacing: -.005em; white-space: nowrap;
+  color: var(--w-ink); background: var(--w-paper-btn); text-decoration: none; cursor: pointer;
+  box-shadow: 0 0 0 .5px var(--w-edge), 0 1.5px 0 0 var(--w-paper-seat);
+  transition: transform 260ms cubic-bezier(.3,1.45,.6,1), box-shadow 260ms cubic-bezier(.3,1.45,.6,1), background-color 200ms cubic-bezier(.2,.8,.2,1);
+}
+.seat-btn:hover { background: var(--w-paper-btn-hover); }
+.seat-btn:active { transform: translateY(1.5px) scale(.985); box-shadow: 0 0 0 .5px var(--w-edge), 0 0 0 0 var(--w-paper-seat); transition-duration: 90ms; transition-timing-function: cubic-bezier(.2,.8,.2,1); }
+.seat-btn:focus-visible { outline: 2px solid var(--w-ring); outline-offset: 3px; }

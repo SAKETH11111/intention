@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "screen": {
+    "width": 1440,
+    "height": 900,
+    "clock": "Sun Oct 11  9:41 AM"
+  },
+  "assumptions": {
+    "typingWPM": 40,
+    "speakingWPM": 145
+  },
+  "timing": {
+    "swap": 0.32,
+    "rise": 0.35,
+    "firstWord": 0.32,
+    "word": 0.3,
+    "wordFade": 0.12,
+    "beat": 0.4,
+    "flush": 0.25,
+    "write": 0.9,
+    "insert": 0.16,
+    "land": 0.26,
+    "count": 1.4
+  },
+  "scenes": [
+    {
+      "id": "title",
+      "app": "Finder"
+    },
+    {
+      "id": "messages",
+      "app": "Messages",
+      "label": "Messages",
+      "icon": "../assets/apps/imessage.svg",
+      "readyHold": 6.0,
+      "said": "tell leo i'm running ten late, order me the usual",
+      "wrote": "running ten late. order me the usual, i'll get this one",
+      "writtenWords": 11
+    },
+    {
+      "id": "slack",
+      "app": "Slack",
+      "label": "Slack",
+      "icon": "../assets/apps/slack.svg",
+      "readyHold": 6.0,
+      "said": "tell priya the deck's ready, i moved pricing up front, and i'll send it to the team after lunch",
+      "wrote": "Deck's ready for 3. I moved pricing up front, and I'll send it to the team right after lunch.",
+      "writtenWords": 19
+    },
+    {
+      "id": "gmail",
+      "app": "Safari",
+      "label": "Gmail",
+      "icon": "../assets/apps/gmail.svg",
+      "readyHold": 8.0,
+      "said": "tell marcus it's signed, the blue chairs come thursday, and thank him for holding it through the summer",
+      "wrote": "<div>Hi Marcus,</div><div><br></div><div>Signed and sent back. The blue chairs arrive Thursday, so the grey ones can go.</div><div><br></div><div>Thank you for holding the place through the summer.</div><div><br></div><div>Nadia<span data-caret-here></span></div>",
+      "writtenWords": 27
+    },
+    {
+      "id": "notes",
+      "app": "Notes",
+      "label": "Notes",
+      "icon": "notes-icon.svg",
+      "readyHold": 6.0,
+      "said": "notes for friday's launch review. three things. launch moves to the fourteenth. dana owns the pricing page. we still need final screenshots, i'll take those monday. and remind me to book the room for thursday at two",
+      "wrote": "<h3>Friday launch review</h3><ol><li>Launch moves to the 14th.</li><li>Dana owns the pricing page.</li><li>Final screenshots still needed. I'll take them Monday.</li></ol><p><b>Reminder:</b> book the room for Thursday at 2.<span data-caret-here></span></p>",
+      "writtenWords": 29
+    },
+    {
+      "id": "savings",
+      "app": "Finder",
+      "readyHold": 5.0,
+      "totalLabel": "Time saved across these messages",
+      "totals": {
+        "writtenWords": 86,
+        "typingSeconds": 129.0,
+        "speakingSeconds": 35.59,
+        "savedSeconds": 93.41
+      }
+    },
+    {
+      "id": "ending",
+      "app": "Finder"
+    }
+  ],
+  "timeline": {
+    "source": "video/timeline.json",
+    "fps": 60,
+    "duration": 270,
+    "starts": {
+      "title": 0,
+      "messages": 55,
+      "slack": 85,
+      "gmail": 115,
+      "notes": 160,
+      "savings": 195,
+      "ending": 225
+    }
+  }
+}

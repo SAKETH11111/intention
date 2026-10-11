@@ -1,0 +1,19 @@
+{
+  "name": "intention-synthetic-composers",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@tiptap/core": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
+    "@tiptap/extension-placeholder": "3.31.3",
+    "lexical": "0.51.0",
+    "@lexical/plain-text": "0.51.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

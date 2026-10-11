@@ -1,0 +1,38 @@
+@font-face{font-family:"Bree Serif";src:url("../assets/BreeSerif-Regular.woff2") format("woff2"),url("../assets/BreeSerif-Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Intention Own Hand";src:url("../assets/IntentionOwnHand-Regular.woff2?v=1.001") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+.examples-page{position:relative;isolation:isolate;background:radial-gradient(ellipse 60% 40% at 90% 100%,#F3E7DD 0%,transparent 60%),linear-gradient(180deg,var(--paper) 0,var(--paper) calc(100% - 1100px),var(--sky) 100%);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.page-sky{position:absolute;inset:0 0 auto;height:1040px;z-index:-1;background:linear-gradient(to bottom,#f9faf700 25%,#f9faf730 53%,var(--paper) 100%),url('../assets/intention-landscape-approved.png') center top/cover no-repeat;pointer-events:none}
+.page-sky{background-image:linear-gradient(to bottom,#f9faf700 25%,#f9faf730 53%,var(--paper) 100%),image-set(url('../assets/intention-landscape-approved.avif') type('image/avif'),url('../assets/intention-landscape-approved.webp') type('image/webp'),url('../assets/intention-landscape-approved.png') type('image/png'))}
+.examples-page .home-link{padding:8px 0}.examples-page .home-link img{width:118px;height:auto}
+
+.own-hand-heading span{white-space:nowrap}
+
+@media(max-width:600px){.own-hand-heading span{display:block}}
+
+.paper-sheet{position:relative;min-height:120px;padding:0}
+
+[hidden]{display:none!important}
+/* Stacked and centred: heading and line on top, the reservation beneath. */
+.early-access{width:min(1220px,calc(100% - 112px));margin:48px auto 0;padding:40px 0 60px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:28px}
+.offer-copy h2{font-family:"Bree Serif",serif;font-size:52px;font-weight:400;letter-spacing:0;line-height:1.2;margin:0 0 13px}
+.offer-copy p{font-size:20px;color:var(--muted);margin:0}
+.offer-action{text-align:center;width:min(440px,100%)}.offer-action .reserve-button{min-width:380px;min-height:76px;font-size:21px;font-weight:600}
+
+.offer-action .polished-button:disabled{opacity:.85}
+#offer-status{font-size:10px;line-height:1.7;color:var(--muted);margin:14px 0 0}
+.examples-footer{width:calc(100% - 112px);max-width:1180px;margin:0 auto;padding-bottom:12px;border-top:1px solid #202a2e22;min-height:88px;display:flex;align-items:center;justify-content:space-between;gap:20px;color:var(--muted);font-size:15px}
+.examples-footer a{min-height:44px;min-width:44px;display:flex;align-items:center;gap:9px}
+.back-to-top{font-size:15px;font-weight:500;color:var(--muted);padding:0 4px}.back-to-top:hover{color:var(--ink);text-decoration:underline;text-underline-offset:5px;text-decoration-color:#202a2e66}
+.back-to-top{font-size:15px;font-weight:500;color:var(--muted);padding:0 4px;white-space:nowrap}.back-to-top:hover{color:var(--ink);text-decoration:underline;text-underline-offset:5px;text-decoration-color:#202a2e66}.examples-footer p{margin:0}.examples-footer img{width:20px;height:auto}
+
+@media(max-width:900px){.early-access{width:calc(100% - 64px)}.offer-copy h2{font-size:30px}.examples-footer{width:calc(100% - 64px)}}
+@media(max-width:600px){
+ .examples-page .home-link img{width:84px}.page-sky{height:960px;background-size:auto 960px;background-position:84% top;background-image:linear-gradient(to bottom,#f9faf700 25%,#f9faf730 53%,var(--paper) 100%),image-set(url('../assets/intention-landscape-mobile.avif?v=phone-2') type('image/avif'),url('../assets/intention-landscape-mobile.webp?v=phone-2') type('image/webp'),url('../assets/intention-landscape-approved.png') type('image/png'))}
+
+ .paper-sheet{min-height:120px;padding:0}
+ .early-access{width:calc(100% - 48px);margin-top:12px;padding:35px 0 41px;gap:22px}.offer-copy h2{font-size:38px;max-width:340px;margin:0 auto 13px}.offer-action{margin-top:0}.offer-action .reserve-button{min-width:0;width:100%}.offer-action .polished-button-wrap{width:100%;max-width:300px}
+ .examples-footer{width:calc(100% - 40px);gap:12px}.examples-footer p{font-size:13px}
+}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}@keyframes page-arrival{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}}
+/* On the narrowest phones the footer takes a second row rather than squeeze Back to top. */
+@media(max-width:360px){.examples-footer{flex-wrap:wrap;row-gap:4px;padding-top:8px}.examples-footer p{flex:1 1 auto}}

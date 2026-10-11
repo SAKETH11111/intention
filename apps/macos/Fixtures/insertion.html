@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Intention insertion fixture</title>
+<style>
+  body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 24px; max-width: 720px; color: #202a2e; }
+  label { display: block; margin: 14px 0 4px; font-weight: 600; }
+  textarea, input, [contenteditable] { width: 100%; box-sizing: border-box; font: inherit; padding: 8px; border: 1px solid #b8c2c7; border-radius: 6px; }
+  textarea { height: 70px; }
+  [contenteditable] { min-height: 50px; }
+  [contenteditable] p { margin: 0; }
+  #hinted .hint { color: #80868b; pointer-events: none; user-select: none; }
+  .setup button { margin: 4px 4px 0 0; }
+</style>
+</head>
+<body>
+<p>Every value on this page is synthetic. Intention's insertion checks press the buttons below to reset a field, focus it and set its selection. Nothing here is sent anywhere.</p>
+<p><label for="status">Status</label><input id="status" readonly value="submitted: no"></p>
+<p><label for="setup-state">Last setup</label><input id="setup-state" readonly value=""></p>
+
+<form id="form">
+  <label for="input">Single-line input</label>
+  <input id="input" type="text">
+
+  <label for="textarea">Textarea</label>
+  <textarea id="textarea"></textarea>
+
+  <label for="editable">Contenteditable</label>
+  <div id="editable" contenteditable="true"></div>
+
+  <label for="hinted">Mail body with a hint the accessibility tree does not show (Gmail's structure)</label>
+  <!-- The hint is an inline non-editable span whose text is aria-hidden, as
+       Gmail's compose body carries Gemini's "Press / to write" on October
+       6, 2026 (see insertion-gmail-reply.html). The body then reads as one
+       line break with nothing in front of it. The hint goes away on input.
+       Positioned out of the flow instead, Chromium read the caret as an
+       offset into the label above the body and WebKit's replace range
+       landed nowhere, which Gmail's own structure does not do. -->
+  <div id="hinted" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Message Body"><span class="hint" contenteditable="false"><span aria-hidden="true">Press / to write using your Gmail &amp; Drive</span></span><br></div>
+  <label for="hinted-text">Its text without the hint, as the page holds it</label>
+  <input id="hinted-text" readonly>
+
+  <label for="composer">Chat composer (Enter sends)</label>
+  <div id="composer" contenteditable="true"></div>
+
+  <label for="guarded">Editor that accepts only paste and deletion</label>
+  <div id="guarded" contenteditable="true"></div>
+
+  <label for="paragraphs">Editor with one paragraph per line</label>
+  <div id="paragraphs" contenteditable="true" role="textbox" aria-multiline="true"></div>
+  <label for="paragraphs-text">Its text, as the page holds it (⏎ for a line break)</label>
+  <input id="paragraphs-text" readonly>
+  <label for="paragraphs-shape">Its text with each image as ▣ and each line break inside a paragraph as ↵</label>
+  <input id="paragraphs-shape" readonly>
+
+  <label for="lines">Editor with one div per line, left to the browser</label>
+  <div id="lines" contenteditable="true" role="textbox" aria-multiline="true"></div>
+  <label for="lines-text">Its text, as the page holds it (⏎ for a line break)</label>
+  <input id="lines-text" readonly>
+  <label for="lines-shape">Its text with each image as ▣ and each line break inside a line as ↵</label>
+  <input id="lines-shape" readonly>
+
+  <label for="list">Editor with a list between two paragraphs, left to the browser</label>
+  <div id="list" contenteditable="true" role="textbox" aria-multiline="true"></div>
+  <label for="list-shape">Its text with each item's label in front, each image as ▣ and each line break inside a block as ↵</label>
+  <input id="list-shape" readonly>
+
+  <label for="password">Password</label>
+  <input id="password" type="password" autocomplete="off">
+</form>
+
+<div class="setup">
+  <button id="setup-input-caret">setup input caret</button>
+  <button id="setup-textarea-selection">setup textarea selection</button>
+  <button id="setup-textarea-edit">setup textarea edit</button>
+  <button id="setup-editable-caret">setup editable caret</button>
+  <button id="setup-editable-empty">setup editable empty</button>
+  <button id="setup-hinted-empty">setup hinted empty</button>
+  <button id="setup-hinted-typed">setup hinted typed</button>
+  <button id="setup-composer-caret">setup composer caret</button>
+  <button id="setup-guarded-caret">setup guarded caret</button>
+  <button id="setup-paragraphs-caret">setup paragraphs caret</button>
+  <button id="setup-paragraphs-word">setup paragraphs word</button>
+  <button id="setup-paragraphs-second">setup paragraphs second</button>
+  <button id="setup-paragraphs-across">setup paragraphs across</button>
+  <button id="setup-paragraphs-end">setup paragraphs end</button>
+  <button id="setup-paragraphs-after-empty">setup paragraphs after empty</button>
+  <button id="setup-paragraphs-across-empty">setup paragraphs across empty</button>
+  <button id="setup-paragraphs-image-end">setup paragraphs image end</button>
+  <button id="setup-paragraphs-image-break">setup paragraphs image break</button>
+  <button id="setup-paragraphs-image-then-empty">setup paragraphs image then empty</button>
+  <button id="setup-paragraphs-image-alone">setup paragraphs image alone</button>
+  <button id="setup-lines-caret">setup lines caret</button>
+  <button id="setup-lines-word">setup lines word</button>
+  <button id="setup-lines-second">setup lines second</button>
+  <button id="setup-lines-across">setup lines across</button>
+  <button id="setup-lines-end">setup lines end</button>
+  <button id="setup-lines-after-empty">setup lines after empty</button>
+  <button id="setup-lines-across-empty">setup lines across empty</button>
+  <button id="setup-lines-image-before">setup lines image before</button>
+  <button id="setup-lines-image-after">setup lines image after</button>
+  <button id="setup-lines-image-word">setup lines image word</button>
+  <button id="setup-list-bullets-before">setup list bullets before</button>
+  <button id="setup-list-bullets-start">setup list bullets start</button>
+  <button id="setup-list-bullets-middle">setup list bullets middle</button>
+  <button id="setup-list-bullets-end">setup list bullets end</button>
+  <button id="setup-list-bullets-after">setup list bullets after</button>
+  <button id="setup-list-numbers-before">setup list numbers before</button>
+  <button id="setup-list-numbers-start">setup list numbers start</button>
+  <button id="setup-list-numbers-middle">setup list numbers middle</button>
+  <button id="setup-list-numbers-end">setup list numbers end</button>
+  <button id="setup-list-numbers-after">setup list numbers after</button>
+  <button id="setup-list-image-before">setup list image before</button>
+  <button id="setup-list-image-after">setup list image after</button>
+  <button id="setup-list-image-word">setup list image word</button>
+  <button id="setup-password">setup password</button>
+</div>
+
+<script>
+  // The checks compute expected values from these strings independently.
+  // Offsets are UTF-16 units, matching Accessibility and setSelectionRange.
+  const TEXT = "The synthetic meeting is on Thursday. Please reply with a short note.";
+  const UNICODE = "Plan 👋🏽 with 👩‍💻 café 東京 today";
+  // The checks copy this page under a fresh name and find its window by it.
+  document.title = "Intention insertion fixture " + location.pathname.split("/").pop();
+  const status = document.getElementById("status");
+  const mark = (value) => { status.value = value; };
+
+  document.getElementById("form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    mark("submitted: yes (form)");
+  });
+  // A chat composer sends on Enter, whether the editor sees it as a key or as
+  // an inserted paragraph.
+  const composer = document.getElementById("composer");
+  composer.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); mark("submitted: yes (Enter key)"); }
+  });
+  composer.addEventListener("beforeinput", (event) => {
+    if (event.inputType === "insertParagraph") { event.preventDefault(); mark("submitted: yes (insertParagraph)"); }
+  });
+
+  // Stands in for editors that handle input themselves and ignore
+  // Accessibility writes: everything but paste and deletion is cancelled.
+  document.getElementById("guarded").addEventListener("beforeinput", (event) => {
+    if (event.inputType !== "insertFromPaste" && !event.inputType.startsWith("delete")) { event.preventDefault(); }
+  });
+
+  // Stands in for editors that keep each line in its own block, as Slack's
+  // does: a line break that arrives inside a paragraph becomes a new
+  // paragraph, and the caret stays where it was in the text.
+  const paragraphs = document.getElementById("paragraphs");
+  const LEAD = "First synthetic paragraph.";
+  // With `shape`, an image reads as "▣" and a line break inside a block
+  // as "↵", so a check can tell where an image sits and on which side of
+  // a break; without it, images are left out.
+  function flatten(root, caretNode, caretOffset, shape = false) {
+    let text = "", caret = null, blocks = 0;
+    const visit = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        if (node === caretNode) { caret = text.length + caretOffset; }
+        text += node.data;
+        return;
+      }
+      if (node.nodeName === "IMG") {
+        if (shape) { text += "▣"; }
+        return;
+      }
+      if (shape && node.nodeName === "LI") {
+        // An item starts a line with its label in front, as a reader sees
+        // the list.
+        const list = node.parentNode;
+        const items = [...list.children].filter((child) => child.nodeName === "LI");
+        if (blocks++ > 0) { text += "\n"; }
+        text += list.nodeName === "OL" ? `${(list.start || 1) + items.indexOf(node)}. ` : "• ";
+        node.childNodes.forEach((child, index) => {
+          if (node === caretNode && index === caretOffset) { caret = text.length; }
+          visit(child);
+        });
+        return;
+      }
+      if (node.nodeName === "BR") {
+        // A paragraph's only child is the placeholder of an empty line.
+        if (node.parentNode.childNodes.length > 1) { text += shape ? "↵" : "\n"; }
+        return;
+      }
+      // Only paragraphs start a line; the browser also wraps text it moves
+      // between paragraphs in inline elements.
+      if (/^(P|DIV)$/.test(node.nodeName) && node !== root && blocks++ > 0) { text += "\n"; }
+      node.childNodes.forEach((child, index) => {
+        if (node === caretNode && index === caretOffset) { caret = text.length; }
+        visit(child);
+      });
+      if (node === caretNode && caret === null) { caret = text.length; }
+    };
+    visit(root);
+    return { text, caret };
+  }
+  function place(root, offset) {
+    for (const paragraph of root.children) {
+      const length = paragraph.textContent.length;
+      if (offset <= length) {
+        const node = paragraph.firstChild && paragraph.firstChild.nodeType === Node.TEXT_NODE ? paragraph.firstChild : paragraph;
+        return [node, node === paragraph ? 0 : offset];
+      }
+      offset -= length + 1;
+    }
+    return [root, root.childNodes.length];
+  }
+  function fill(root, text, block = "p") {
+    root.replaceChildren(...text.split("\n").map((line) => {
+      const paragraph = document.createElement(block);
+      paragraph.append(line === "" ? document.createElement("br") : document.createTextNode(line));
+      return paragraph;
+    }));
+  }
+  function selectText(root, start, end) {
+    root.focus();
+    const range = document.createRange();
+    range.setStart(...place(root, start));
+    range.setEnd(...place(root, end));
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+  const tidy = (node) => node.nodeName === "P" && node.childNodes.length === 1
+    && (node.firstChild.nodeName === "BR" || (node.firstChild.nodeType === Node.TEXT_NODE && !node.firstChild.data.includes("\n")));
+  paragraphs.addEventListener("input", () => {
+    if (paragraphs.childNodes.length > 0 && [...paragraphs.childNodes].every(tidy)) { return; }
+    // Rebuilding the paragraphs would drop an image, so an editor holding
+    // one is left to the browser. The image setups insert no line break.
+    if (paragraphs.querySelector("img")) { return; }
+    const selection = window.getSelection();
+    const inside = selection.rangeCount > 0 && paragraphs.contains(selection.focusNode);
+    const { text, caret } = flatten(paragraphs, inside ? selection.focusNode : null, inside ? selection.focusOffset : 0);
+    fill(paragraphs, text);
+    if (caret !== null) { selectText(paragraphs, caret, caret); }
+  });
+  // The page's own account of the editor's text, one line break between
+  // paragraphs and one more for each empty line. A browser's accessibility
+  // value shows fewer breaks than that, so the checks read this instead.
+  const mirror = () => {
+    document.getElementById("paragraphs-text").value = flatten(paragraphs, null, 0).text.replaceAll("\n", "⏎");
+    document.getElementById("paragraphs-shape").value = flatten(paragraphs, null, 0, true).text.replaceAll("\n", "⏎");
+  };
+  new MutationObserver(mirror).observe(paragraphs, { childList: true, subtree: true, characterData: true });
+  // Offsets count the line break between two paragraphs.
+  function resetParagraphs(text, start, end) {
+    mark("submitted: no");
+    fill(paragraphs, text);
+    selectText(paragraphs, start, end);
+    mirror();
+  }
+
+  // Stands in for editors that keep each line in a plain block and leave
+  // every edit to the browser, as a mail compose body does: no script here
+  // touches what an insertion makes of a line break.
+  const lines = document.getElementById("lines");
+  const mirrorLines = () => {
+    document.getElementById("lines-text").value = flatten(lines, null, 0).text.replaceAll("\n", "⏎");
+    document.getElementById("lines-shape").value = flatten(lines, null, 0, true).text.replaceAll("\n", "⏎");
+  };
+  new MutationObserver(mirrorLines).observe(lines, { childList: true, subtree: true, characterData: true });
+  function resetLines(text, start, end) {
+    mark("submitted: no");
+    fill(lines, text, "div");
+    selectText(lines, start, end);
+    mirrorLines();
+  }
+
+  // Images for the editors: a 1 by 1 GIF drawn at 14 by 14, from the page
+  // itself, never the network. Offsets cannot say which side of an image
+  // a place is on, so the image setups set the selection on the page's own
+  // nodes.
+  const IMAGE = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+  function picture(alt) {
+    const image = document.createElement("img");
+    image.width = 14;
+    image.height = 14;
+    image.src = IMAGE;
+    if (alt !== undefined) { image.alt = alt; }
+    return image;
+  }
+  function selectNodes(root, startNode, start, endNode, end) {
+    root.focus();
+    const range = document.createRange();
+    range.setStart(startNode, start);
+    range.setEnd(endNode, end);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+  // The line editor with an image without alt text after "The " in its
+  // second line, and the caret right before the image, right after it, or
+  // a selection of the word right after it.
+  function resetLinesImage(place) {
+    mark("submitted: no");
+    fill(lines, LEAD + "\n" + TEXT, "div");
+    const line = lines.children[1];
+    const after = line.firstChild.splitText(4);
+    line.insertBefore(picture(), after);
+    if (place === "before") { selectNodes(lines, line.firstChild, 4, line.firstChild, 4); }
+    if (place === "after") { selectNodes(lines, line, 2, line, 2); }
+    if (place === "word") { selectNodes(lines, line, 2, after, 9); }
+    mirrorLines();
+  }
+  // The paragraph editor with an image with alt text at the end of its
+  // second paragraph ("end"), after a line break there ("break"), the same
+  // image followed by an empty last paragraph ("then-empty"), or the image
+  // alone in a third paragraph ("alone"); "note." right before it selected.
+  function resetParagraphsImage(shape) {
+    mark("submitted: no");
+    fill(paragraphs, LEAD + "\n" + TEXT + (shape === "then-empty" || shape === "alone" ? "\n" : ""));
+    const second = paragraphs.children[1];
+    const words = second.firstChild;
+    if (shape === "break") { second.append(document.createElement("br")); }
+    if (shape === "alone") { paragraphs.children[2].replaceChildren(picture("Picture")); } else { second.append(picture("Picture")); }
+    selectNodes(paragraphs, words, TEXT.length - 5, words, TEXT.length);
+    mirror();
+  }
+
+  // Stands in for a mail or notes editor holding a list between two
+  // paragraphs without margins, left to the browser. WebKit's markers read
+  // each item with its label in front ("• " or "1. ") and give the label
+  // no offset. The list's first item holds "One", or for "image" "One",
+  // an image with alt text and "Six"; the second holds "Two". `place`
+  // puts the caret at the end of the first paragraph ("before"), at the
+  // start, in the middle or at the end of the first item, at the start of
+  // the last paragraph ("after"), right before or right after the image,
+  // or selects "Six" ("word").
+  const list = document.getElementById("list");
+  const mirrorList = () => { document.getElementById("list-shape").value = flatten(list, null, 0, true).text.replaceAll("\n", "⏎"); };
+  new MutationObserver(mirrorList).observe(list, { childList: true, subtree: true, characterData: true });
+  function resetList(kind, place) {
+    mark("submitted: no");
+    const paragraph = (text) => { const p = document.createElement("p"); p.append(text); return p; };
+    const items = document.createElement(kind === "numbers" ? "ol" : "ul");
+    for (const text of ["One", "Two"]) {
+      const item = document.createElement("li");
+      item.append(text);
+      items.append(item);
+    }
+    const first = items.children[0];
+    if (kind === "image") { first.append(picture("Picture"), "Six"); }
+    list.replaceChildren(paragraph("Start."), items, paragraph("End."));
+    const lead = list.children[0].firstChild, end = list.children[2].firstChild, one = first.firstChild;
+    const places = {
+      before: [lead, 6, lead, 6], start: [one, 0, one, 0], middle: [one, 1, one, 1], end: [one, 3, one, 3],
+      after: [end, 0, end, 0], "image-before": [one, 3, one, 3], "image-after": [first, 2, first, 2],
+      word: [first.childNodes[2], 0, first.childNodes[2], 3],
+    };
+    selectNodes(list, ...places[place]);
+    mirrorList();
+  }
+
+  function select(element, start, end) {
+    element.focus();
+    if (element.isContentEditable) {
+      const node = element.firstChild || element;
+      const range = document.createRange();
+      range.setStart(node, start);
+      range.setEnd(node, end);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else {
+      element.setSelectionRange(start, end);
+    }
+  }
+
+  function reset(id, text, start, end) {
+    mark("submitted: no");
+    const element = document.getElementById(id);
+    if (element.isContentEditable) { element.textContent = text; } else { element.value = text; }
+    select(element, start, end);
+  }
+
+  // The mail body with the hidden hint: empty, it holds the hint and a line
+  // break with the caret in front of both, as Gmail leaves a new reply;
+  // with text, the hint is gone and the caret is after the text.
+  const hinted = document.getElementById("hinted");
+  const HINT = '<span class="hint" contenteditable="false"><span aria-hidden="true">Press / to write using your Gmail &amp; Drive</span></span><br>';
+  hinted.addEventListener("input", () => { const hint = hinted.querySelector(".hint"); if (hint && hinted.textContent !== "") { hint.remove(); } });
+  // The page's own account of the body's text, without the hint: a
+  // browser's accessibility value may hold the hint's words or not.
+  const mirrorHinted = () => {
+    const copy = hinted.cloneNode(true);
+    copy.querySelectorAll(".hint").forEach((hint) => hint.remove());
+    document.getElementById("hinted-text").value = copy.textContent;
+  };
+  new MutationObserver(mirrorHinted).observe(hinted, { childList: true, subtree: true, characterData: true });
+  function resetHinted(text) {
+    mark("submitted: no");
+    if (text === "") {
+      hinted.innerHTML = HINT;
+      hinted.focus();
+      const range = document.createRange();
+      range.setStart(hinted, 0);
+      range.collapse(true);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else {
+      hinted.textContent = text;
+      select(hinted, text.length, text.length);
+    }
+    mirrorHinted();
+  }
+
+  const setups = {
+    "setup-input-caret": () => reset("input", TEXT, 28, 28),
+    "setup-textarea-selection": () => reset("textarea", UNICODE, 5, 20),
+    "setup-textarea-edit": () => reset("textarea", TEXT, 37, 37),
+    "setup-editable-caret": () => reset("editable", TEXT, 37, 37),
+    "setup-editable-empty": () => reset("editable", "", 0, 0),
+    "setup-hinted-empty": () => resetHinted(""),
+    "setup-hinted-typed": () => resetHinted("Hi"),
+    "setup-composer-caret": () => reset("composer", "Draft reply.", 12, 12),
+    "setup-guarded-caret": () => reset("guarded", "Draft reply.", 12, 12),
+    "setup-paragraphs-caret": () => resetParagraphs(TEXT, 37, 37),
+    "setup-paragraphs-word": () => resetParagraphs(TEXT, 4, 13),
+    "setup-paragraphs-second": () => resetParagraphs(LEAD + "\n" + TEXT, LEAD.length + 1 + 37, LEAD.length + 1 + 37),
+    "setup-paragraphs-across": () => resetParagraphs(LEAD + "\n" + TEXT, 16, LEAD.length + 1 + 13),
+    "setup-paragraphs-end": () => resetParagraphs(LEAD + "\n" + TEXT, LEAD.length, LEAD.length),
+    "setup-paragraphs-after-empty": () => resetParagraphs(LEAD + "\n\n" + TEXT, LEAD.length + 2 + 37, LEAD.length + 2 + 37),
+    "setup-paragraphs-across-empty": () => resetParagraphs(LEAD + "\n\n" + TEXT, 16, LEAD.length + 2 + 13),
+    "setup-paragraphs-image-end": () => resetParagraphsImage("end"),
+    "setup-paragraphs-image-break": () => resetParagraphsImage("break"),
+    "setup-paragraphs-image-then-empty": () => resetParagraphsImage("then-empty"),
+    "setup-paragraphs-image-alone": () => resetParagraphsImage("alone"),
+    "setup-lines-caret": () => resetLines(TEXT, 37, 37),
+    "setup-lines-word": () => resetLines(TEXT, 4, 13),
+    "setup-lines-second": () => resetLines(LEAD + "\n" + TEXT, LEAD.length + 1 + 37, LEAD.length + 1 + 37),
+    "setup-lines-across": () => resetLines(LEAD + "\n" + TEXT, 16, LEAD.length + 1 + 13),
+    "setup-lines-end": () => resetLines(LEAD + "\n" + TEXT, LEAD.length, LEAD.length),
+    "setup-lines-after-empty": () => resetLines(LEAD + "\n\n" + TEXT, LEAD.length + 2 + 37, LEAD.length + 2 + 37),
+    "setup-lines-across-empty": () => resetLines(LEAD + "\n\n" + TEXT, 16, LEAD.length + 2 + 13),
+    "setup-lines-image-before": () => resetLinesImage("before"),
+    "setup-lines-image-after": () => resetLinesImage("after"),
+    "setup-lines-image-word": () => resetLinesImage("word"),
+    "setup-list-bullets-before": () => resetList("bullets", "before"),
+    "setup-list-bullets-start": () => resetList("bullets", "start"),
+    "setup-list-bullets-middle": () => resetList("bullets", "middle"),
+    "setup-list-bullets-end": () => resetList("bullets", "end"),
+    "setup-list-bullets-after": () => resetList("bullets", "after"),
+    "setup-list-numbers-before": () => resetList("numbers", "before"),
+    "setup-list-numbers-start": () => resetList("numbers", "start"),
+    "setup-list-numbers-middle": () => resetList("numbers", "middle"),
+    "setup-list-numbers-end": () => resetList("numbers", "end"),
+    "setup-list-numbers-after": () => resetList("numbers", "after"),
+    "setup-list-image-before": () => resetList("image", "image-before"),
+    "setup-list-image-after": () => resetList("image", "image-after"),
+    "setup-list-image-word": () => resetList("image", "word"),
+    "setup-password": () => reset("password", "", 0, 0),
+  };
+  // Says which setup ran last and how many have run, so a check that
+  // pressed a button can wait for the page to have acted on it.
+  let setupsRun = 0;
+  for (const [id, setup] of Object.entries(setups)) {
+    document.getElementById(id).addEventListener("click", () => {
+      setup();
+      setupsRun += 1;
+      document.getElementById("setup-state").value = id + " " + setupsRun;
+    });
+  }
+</script>
+</body>
+</html>

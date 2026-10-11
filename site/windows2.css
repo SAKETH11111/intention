@@ -1,0 +1,281 @@
+/* The v3 page's new windows (windows2.html), drawn on top of windows.css: link
+   both, windows.css first. Nothing here repeats a rule windows.css has; the
+   three Gmail replies and the reply card are windows.css's Gmail (.app-gmail)
+   with only their people, words and the card added here.
+
+   Contract, as in windows.css. Each fragment is one .app-window, 520 px wide
+   and shrinking to its column, laid out by its own width (container aw).
+   Light is the default; a window turns dark inside any ancestor with
+   data-mode="dark", or with data-mode="dark" on itself. Every class starts
+   with aw- and every rule is scoped to .app-window.
+
+   - .app-gmail-nadia, .app-gmail-jonah, .app-gmail-rosa: one thread, three
+     replies. They are .aw-trio, so set side by side in a row that stretches
+     its items they take one height, the reply box growing and the Send row
+     staying at the foot.
+   - .app-notes-dictate: Notes on a strip of desktop, the foot dot risen into
+     the listening sun under the window (the moon by night).
+   - .app-onboarding-mail: the Intention app's setup window at the mail page, at
+     the app's 540 by 760 proportions, measured in its own points (--u).
+   - .app-gmail-card: Gmail with the reply proposal card at the caret. */
+
+@font-face { font-family: "DM Sans"; src: url("assets/DM-Sans.woff2") format("woff2"); font-weight: 100 1000; font-display: swap; }
+@font-face { font-family: "Intention Own Hand"; src: url("assets/IntentionOwnHand-Regular.woff2?v=1.001") format("woff2"); font-weight: 400; font-display: swap; }
+
+/* ---------- Gmail: the three replies to Marcus, and the card's thread ---------- */
+
+/* Gmail's letter pictures, one step deeper so the white initial reads at 4.5:1 or better. */
+.app-window .aw-gm-face.c-jonah { background: #1a5c9e; }
+.app-window .aw-gm-face.c-rosa { background: #a8431b; }
+.app-window .aw-gm-face.c-sam { background: #9c3667; }
+.app-window .aw-gm-face.c-jordan { background: #00695c; }
+
+.app-window.app-window.aw-trio { display: flex; flex-direction: column; }
+.app-window.aw-trio .aw-gm, .app-window.aw-trio .aw-gm-card, .app-window.aw-trio .aw-gm-reply { display: flex; flex: 1; flex-direction: column; }
+.app-window.aw-trio .aw-gm-body { flex: 1; }
+
+/* An earlier message, folded to one line, with the divider Gmail draws under it. */
+.app-window .aw-gm-msg.aw-gm-folded { padding-bottom: 14px; box-shadow: inset 0 -1px 0 var(--g-line); }
+.app-window .aw-gm-msg.aw-gm-folded .aw-gm-face { grid-row: span 1; }
+.app-window .aw-gm-folded .aw-gm-from { align-self: center; gap: 12px; }
+.app-window .aw-gm-folded .aw-gm-from b { flex: none; }
+.app-window .aw-gm-snip { flex: 1; min-width: 0; overflow: hidden; color: var(--g-muted); white-space: nowrap; text-overflow: ellipsis; }
+
+/* The reply proposal card (ProposalCard.swift), as the live site drew it: flat paper with a
+   hairline and the one float, radius 10, the text starting at the caret and the key row on a
+   well band along its foot. The caret lies under the card; its dot sits on the card's top edge,
+   over the caret. */
+.app-window.app-gmail-card {
+  --pc-sheet: #f9faf7;
+  --pc-band: #e4e1d6;
+  --pc-ink: #202a2e;
+  --pc-ink-2: rgba(32,42,46,.76);
+  --pc-hair: rgba(32,42,46,.14);
+  --pc-action: #202a2e;
+  --pc-action-text: #f9faf7;
+  --pc-action-seat: rgba(32,42,46,.42);
+  --pc-float: 0 0 0 .5px rgba(32,42,46,.22), 0 2px 2px -1px rgba(32,42,46,.08), 0 12px 24px -12px rgba(32,42,46,.35);
+  --aw-dot-size: 8px;
+}
+[data-mode="dark"] .app-window.app-gmail-card, .app-window.app-gmail-card[data-mode="dark"] {
+  --pc-sheet: #1e2e5c;
+  --pc-band: #182a5a;
+  --pc-ink: #eeefe9;
+  --pc-ink-2: rgba(238,239,233,.76);
+  --pc-hair: rgba(238,239,233,.16);
+  --pc-action: #eeefe9;
+  --pc-action-text: #141f40;
+  --pc-action-seat: #8e97a8;
+  --pc-float: 0 0 0 .5px rgba(238,239,233,.42), 0 2px 2px -1px rgba(0,0,0,.4), 0 16px 32px -12px rgba(0,0,0,.7);
+}
+.app-window .aw-pc { position: relative; margin: 2px -4px 2px -14px; border-radius: 10px; background: var(--pc-sheet); box-shadow: var(--pc-float); color: var(--pc-ink); font-family: "DM Sans", var(--aw-sys); }
+.app-window .aw-pc .aw-dot { left: calc(15px - var(--aw-dot-size) / 2); top: calc(var(--aw-dot-size) / -2); bottom: auto; }
+.app-window .aw-pc-text { padding: 10px 16px 10px 14px; font-size: 15px; line-height: 22px; }
+.app-window .aw-pc-keys { display: flex; align-items: flex-start; gap: 7px; padding: 8px 16px 9px 14px; border-radius: 0 0 10px 10px; background: var(--pc-band); box-shadow: inset 0 .5px 0 var(--pc-hair); font-size: 13px; font-weight: 500; line-height: 19px; color: var(--pc-ink-2); }
+/* Tab is the ink keycap, on its seat. */
+.app-window .aw-pc-keys kbd { display: inline-flex; flex: none; align-items: center; justify-content: center; height: 20px; min-width: 25px; margin-top: -1px; padding: 0 6px; border-radius: 4px; background: var(--pc-action); box-shadow: 0 0 0 .5px var(--pc-action), 0 1.5px 0 0 var(--pc-action-seat); color: var(--pc-action-text); font: 600 12px/1 "DM Sans", var(--aw-sys); }
+
+@container aw (max-width: 440px) {
+  .app-window .aw-gm-msg.aw-gm-folded { padding-bottom: 12px; }
+  .app-window .aw-gm-msg.aw-gm-folded .aw-gm-face { grid-row: span 1; }
+  .app-window .aw-pc { margin-right: -2px; }
+  .app-window .aw-pc-text { padding: 9px 14px 9px 14px; font-size: 14px; line-height: 20px; }
+  .app-window .aw-pc-keys { padding: 7px 14px 8px; font-size: 12.5px; line-height: 18px; }
+}
+@container aw (max-width: 320px) {
+  .app-window .aw-gm-snip { display: none; }
+  .app-window .aw-pc { margin-left: -10px; }
+  .app-window .aw-pc .aw-dot { left: calc(11px - var(--aw-dot-size) / 2); }
+  .app-window .aw-pc-text { padding-left: 10px; }
+  .app-window .aw-pc-keys { padding-left: 10px; }
+}
+
+/* ---------- Notes (macOS 26), on a strip of desktop ----------
+   The window sits on the screen with a strip of desktop under it, the foot
+   of the screen, where the foot dot has risen into the listening sun. Notes
+   with the sidebar closed: the toolbar's capsules over a white page, the
+   date centred, a bold title. The caret takes Notes' yellow tint. */
+.app-window.app-notes-dictate {
+  --nt-desk: radial-gradient(120% 90% at 30% 0%, #d7e3f6 0%, rgba(215,227,246,0) 60%), linear-gradient(180deg, #bccff0 0%, #a3bce8 60%, #8fade3 100%);
+  --nt-page: #fff;
+  --nt-bar: #fff;
+  --nt-text: #1d1d1f;
+  --nt-muted: #6e6e73;
+  --nt-pill: #f3f3f4;
+  --nt-pill-edge: rgba(0,0,0,.07);
+  --nt-icon: rgba(0,0,0,.72);
+  --nt-win: 0 0 0 .5px rgba(0,0,0,.2), 0 2px 4px rgba(20,30,60,.08), 0 14px 32px -10px rgba(20,30,60,.38);
+  --nt-sun: image-set(url("assets/sun.webp") 2x, url("assets/sun@3x.webp") 3x);
+  --nt-desk-hair: #E6E7E2;
+  --aw-dot-ring: var(--nt-page);
+  --aw-caret-c: #d9a400;
+  --aw-caret-h: 18px;
+}
+[data-mode="dark"] .app-window.app-notes-dictate, .app-window.app-notes-dictate[data-mode="dark"] {
+  --nt-desk: radial-gradient(120% 90% at 30% 0%, #26365f 0%, rgba(38,54,95,0) 60%), linear-gradient(180deg, #17223f 0%, #111a33 60%, #0d1429 100%);
+  --nt-page: #1e1e1e;
+  --nt-bar: #282a2a;
+  --nt-text: #dcdcdc;
+  --nt-muted: #98989d;
+  --nt-pill: rgba(255,255,255,.07);
+  --nt-pill-edge: rgba(255,255,255,.1);
+  --nt-icon: rgba(255,255,255,.82);
+  --nt-win: 0 0 0 .5px rgba(255,255,255,.2), 0 0 0 1.5px rgba(0,0,0,.5), 0 16px 34px -10px rgba(0,0,0,.6);
+  --nt-sun: image-set(url("assets/moon.webp") 2x, url("assets/moon@3x.webp") 3x);
+  --nt-desk-hair: #141F40;
+  --aw-caret-c: #f5c518;
+}
+.app-window .aw-desk { display: flow-root; padding: 22px 22px 0; background: var(--nt-desk); }
+.app-window .aw-nt { overflow: hidden; border-radius: 14px; background: var(--nt-page); box-shadow: var(--nt-win); color: var(--nt-text); }
+.app-window .aw-nt-bar { display: flex; align-items: center; gap: 8px; height: 54px; padding: 0 11px 0 16px; background: var(--nt-bar); }
+.app-window .aw-nt-bar .aw-lights { margin-right: 10px; }
+.app-window .aw-nt-gap { flex: 1; }
+.app-window .aw-nt-pill { display: flex; align-items: center; height: 32px; padding: 0 5px; border-radius: 16px; background: var(--nt-pill); box-shadow: 0 0 0 .5px var(--nt-pill-edge); color: var(--nt-icon); }
+.app-window .aw-nt-pill .aw-i { width: 17px; height: 17px; margin: 0 5px; }
+.app-window .aw-nt-aa { width: 28px; text-align: center; font-size: 15px; font-weight: 500; letter-spacing: -.02em; }
+.app-window .aw-nt-page { padding: 4px 38px 28px; font-size: 14.5px; line-height: 21px; overflow-wrap: anywhere; }
+.app-window .aw-nt-page > div + div { margin-top: 3px; }
+.app-window .aw-nt-page > .aw-nt-date { margin-bottom: 12px; text-align: center; font-size: 12px; line-height: 16px; color: var(--nt-muted); }
+.app-window .aw-nt-page > .aw-nt-title { margin: 0 0 7px; font-size: 22px; line-height: 27px; font-weight: 700; letter-spacing: -.01em; }
+/* The foot mark at the foot of the screen, listening, as the Mac app draws it (sun-mark.css on main):
+   the painted sun as a 16 px disc over the resting dot, a 13 px ink circle with its 1.5 px hairline,
+   which listening fades out. In the dark window the moon, cut just past its edge, takes a night-blue
+   hairline. In the art the disc's edge is 55 of 160 px from a centre 2.07 px right of and 0.73 px
+   above the image's, so 23.3 px of art makes the 16 px disc. */
+.app-window .aw-foot-mark { position: relative; display: block; width: 16px; height: 16px; margin: 22px auto; }
+.app-window .aw-foot-mark .sm-dot { position: absolute; inset: 1.5px; border-radius: 50%; background: var(--nt-text); box-shadow: 0 0 0 1.5px var(--nt-desk-hair); opacity: 0; }
+.app-window .aw-foot-mark .sm-disc { position: absolute; left: 50%; top: 50%; width: 23.3px; height: 23.3px; margin: -11.65px 0 0 -11.65px; }
+.app-window .aw-foot-mark .sm-disc::before { content: ""; position: absolute; inset: 0; translate: -.3px .11px; background: var(--nt-sun) center / contain no-repeat; }
+[data-mode="dark"] .app-window .aw-foot-mark .sm-disc::before, .app-window[data-mode="dark"] .aw-foot-mark .sm-disc::before { clip-path: circle(8.3px at calc(50% + .3px) calc(50% - .11px)); }
+[data-mode="dark"] .app-window .aw-foot-mark::after, .app-window[data-mode="dark"] .aw-foot-mark::after { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 1.5px var(--nt-desk-hair); }
+
+@container aw (max-width: 440px) {
+  .app-window .aw-desk { padding: 14px 12px 0; }
+  .app-window .aw-nt { border-radius: 12px; }
+  .app-window .aw-nt-bar { gap: 6px; height: 46px; padding: 0 8px 0 13px; }
+  .app-window .aw-nt-bar .aw-lights { margin-right: 4px; gap: 7px; }
+  .app-window .aw-nt-bar .aw-lights i { width: 11px; height: 11px; }
+  .app-window .aw-nt-pill { height: 28px; padding: 0 3px; }
+  .app-window .aw-nt-pill .aw-i { width: 15px; height: 15px; margin: 0 4px; }
+  .app-window .aw-nt-aa { width: 24px; font-size: 13.5px; }
+  .app-window .aw-nt-wide, .app-window .aw-nt-extra { display: none; }
+  .app-window .aw-nt-page { padding: 0 20px 20px; font-size: 14px; line-height: 20px; }
+  .app-window .aw-nt-page > .aw-nt-title { font-size: 20px; line-height: 25px; }
+  .app-window .aw-foot-mark { margin: 17px auto 18px; }
+}
+@container aw (max-width: 320px) {
+  .app-window .aw-nt-bar > .aw-nt-pill:first-of-type { display: none; }
+  .app-window .aw-nt-page { padding: 0 16px 16px; }
+}
+
+/* ---------- The Intention app's setup, at the mail page ----------
+   The setup window on main (OnboardingView.swift, SetupStyle.swift), before a
+   mailbox is connected: the painting edge to edge under a transparent title
+   bar, the heading in Own Hand with its pen rule, the lead, the sheet with
+   Gmail to connect (the app offers no Outlook) and the envelope
+   drawing, and Not now. The sheet is as tall as its one row, and the window
+   is cut to 540 by 600 points so no empty painting stands under it. The
+   painting is the site's morning painting (the app's own is not among the
+   site's assets), under the setup's pale veil and the ground at its foot.
+   Sizes are the app's points: --u is one point at 540 points to the window's
+   width, so the whole window keeps its proportions. A narrow window lays the
+   same parts out in flow at one pixel to the point. */
+.app-window.app-onboarding-mail {
+  --ob-ink: #202a2e;
+  --ob-ink-2: rgba(32,42,46,.76);
+  --ob-sheet: #f9faf7;
+  --ob-edge: rgba(32,42,46,.26);
+  --ob-hair: rgba(32,42,46,.10);
+  --ob-ground: #eeebe1;
+  --ob-ground-0: rgba(238,235,225,0);
+  --ob-ground-70: rgba(238,235,225,.7);
+  --ob-btn: #f9faf7;
+  --ob-btn-edge: rgba(32,42,46,.46);
+  --ob-btn-seat: rgba(32,42,46,.30);
+  --ob-paint: url("assets/intention-landscape-approved.webp");
+  --ob-paint-x: 18%;
+  --ob-paint-h: 140%;
+  --ob-veil: linear-gradient(180deg, #d3dcec, #dce2ee 45%, #e4e6ec);
+  --ob-veil-o: .4;
+  --ob-paper: #f6dcc6;
+  --ob-line: #2f3a4c;
+  --u: calc(100cqw / 540);
+  border-radius: 17px;
+}
+[data-mode="dark"] .app-window.app-onboarding-mail, .app-window.app-onboarding-mail[data-mode="dark"] {
+  --ob-ink: #eeefe9;
+  --ob-ink-2: rgba(238,239,233,.76);
+  --ob-sheet: #1e2e5c;
+  --ob-edge: rgba(238,239,233,.50);
+  --ob-hair: rgba(238,239,233,.16);
+  --ob-ground: #141f40;
+  --ob-ground-0: rgba(20,31,64,0);
+  --ob-ground-70: rgba(20,31,64,.72);
+  --ob-btn: #2b3e74;
+  --ob-btn-edge: rgba(238,239,233,.50);
+  --ob-btn-seat: #060b1f;
+  --ob-paint: url("assets/intention-landscape-night.webp");
+  --ob-paint-x: 62%;
+  --ob-paint-h: 104%;
+  --ob-veil: linear-gradient(180deg, #3b4670, #4a5682 45%, #5a6588);
+  --ob-veil-o: .3;
+  --ob-paper: #5c6b8c;
+  --ob-line: #d8dce6;
+}
+.app-window .aw-ob { position: relative; aspect-ratio: 540 / 600; overflow: hidden; background: var(--ob-ground); color: var(--ob-ink); font-family: "DM Sans", var(--aw-sys); }
+.app-window .aw-ob-paint { position: absolute; inset: 0; background: var(--ob-paint) var(--ob-paint-x) 100% / auto var(--ob-paint-h) no-repeat; }
+.app-window .aw-ob-paint::after { content: ""; position: absolute; inset: 0; background: var(--ob-veil); opacity: var(--ob-veil-o); mix-blend-mode: multiply; }
+.app-window .aw-ob-ground { position: absolute; left: 0; right: 0; bottom: 0; height: calc(150 * var(--u)); background: linear-gradient(180deg, var(--ob-ground-0), var(--ob-ground-70) 45%, var(--ob-ground) 78%); }
+.app-window .aw-ob-bar { position: absolute; left: 0; right: 0; top: 0; height: calc(44 * var(--u)); }
+.app-window .aw-ob-bar .aw-lights { position: absolute; left: 16px; top: 16px; }
+.app-window .aw-ob-word { position: absolute; left: 50%; top: calc(15 * var(--u)); width: calc(79.0 * var(--u)); height: calc(13.2 * var(--u)); margin-left: calc(-39.5 * var(--u)); background: var(--ob-ink); opacity: .85; -webkit-mask: url("assets/intention-wordmark.svg") center / contain no-repeat; mask: url("assets/intention-wordmark.svg") center / contain no-repeat; }
+.app-window .aw-ob-head { position: absolute; left: calc(36 * var(--u)); right: calc(36 * var(--u)); top: calc(106 * var(--u)); }
+.app-window .aw-ob-h { position: relative; display: inline-block; font: 400 calc(38 * var(--u)) / 1.12 "Intention Own Hand", Georgia, serif; letter-spacing: .005em; white-space: nowrap; }
+/* The pen rule: 4 wider than the heading, 7 below its baseline, ink at 55%. */
+.app-window .aw-ob-rule { position: absolute; left: calc(-2 * var(--u)); top: calc(36 * var(--u)); width: calc(100% + 4 * var(--u)); height: calc(8 * var(--u)); }
+.app-window .aw-ob-rule path { fill: none; stroke: var(--ob-ink); stroke-width: 1.7px; stroke-linecap: round; opacity: .55; vector-effect: non-scaling-stroke; }
+.app-window .aw-ob-lead { max-width: calc(452 * var(--u)); margin: calc(14 * var(--u)) 0 0; font-size: calc(15 * var(--u)); line-height: calc(22 * var(--u)); font-weight: 500; color: var(--ob-ink-2); }
+.app-window .aw-ob-sheet { position: absolute; left: calc(28 * var(--u)); right: calc(28 * var(--u)); top: calc(352 * var(--u)); padding: calc(20 * var(--u)) calc(22 * var(--u)); border-radius: calc(16 * var(--u)); background: var(--ob-sheet); box-shadow: 0 0 0 .5px var(--ob-edge); }
+[data-mode="dark"] .app-window .aw-ob-sheet, .app-window[data-mode="dark"] .aw-ob-sheet { box-shadow: 0 0 0 .5px var(--ob-edge), inset 0 1px 0 rgba(238,239,233,.12); }
+.app-window .aw-ob-offer { width: calc(320 * var(--u)); max-width: 100%; padding-top: calc(4 * var(--u)); }
+.app-window .aw-ob-prov { display: flex; align-items: center; gap: calc(9 * var(--u)); height: calc(52 * var(--u)); font-size: calc(15 * var(--u)); font-weight: 600; }
+.app-window .aw-ob-prov img { width: calc(22 * var(--u)); height: calc(20 * var(--u)); object-fit: contain; }
+.app-window .aw-ob-hair { display: block; height: 1px; background: var(--ob-hair); }
+/* The small paper seat button. */
+.app-window .aw-ob-seat { display: flex; align-items: center; margin-left: auto; height: calc(32 * var(--u)); padding: 0 calc(15 * var(--u)); border-radius: calc(8 * var(--u)); background: var(--ob-btn); box-shadow: 0 0 0 .5px var(--ob-btn-edge), 0 2px 0 0 var(--ob-btn-seat); font-size: calc(15 * var(--u)); font-weight: 600; white-space: nowrap; }
+/* The envelope's ink runs 10 to 82 down its 96 point drawing; this puts its middle on the row's centre line, as the app does for a lone offer. */
+.app-window .aw-ob-spot { position: absolute; top: calc(4 * var(--u)); right: calc(10 * var(--u)); width: calc(96 * var(--u)); height: calc(96 * var(--u)); }
+.app-window .aw-ob-spot path { stroke: var(--ob-line); stroke-width: 1.3px; vector-effect: non-scaling-stroke; }
+.app-window .aw-ob-spot .aw-ob-paper { fill: var(--ob-paper); }
+.app-window .aw-ob-spot .aw-ob-env { fill: var(--ob-sheet); }
+.app-window .aw-ob-spot .aw-ob-scrib { stroke-width: 1.1px; opacity: .8; }
+.app-window .aw-ob-actions { position: absolute; left: calc(36 * var(--u)); right: calc(30 * var(--u)); bottom: calc(18 * var(--u)); display: flex; align-items: center; height: calc(56 * var(--u)); }
+.app-window .aw-ob-quiet { padding: calc(8 * var(--u)) calc(2 * var(--u)); font-size: calc(14 * var(--u)); font-weight: 600; color: var(--ob-ink-2); }
+
+@container aw (max-width: 440px) {
+  /* A container query cannot style the container itself, so the narrow point is set on .aw-ob. */
+  .app-window .aw-ob { --u: 1px; aspect-ratio: auto; }
+  .app-window .aw-ob-paint { background-size: auto max(100%, calc(var(--ob-paint-h) - 10%)); }
+  .app-window .aw-ob-bar { position: relative; }
+  .app-window .aw-ob-bar .aw-lights { left: 14px; top: 15px; gap: 7px; }
+  .app-window .aw-ob-bar .aw-lights i { width: 11px; height: 11px; }
+  .app-window .aw-ob-head { position: relative; left: auto; right: auto; top: auto; padding: 30px 24px 0; }
+  .app-window .aw-ob-h { font-size: 34px; }
+  .app-window .aw-ob-rule { top: 32px; }
+  .app-window .aw-ob-lead { font-size: 14px; line-height: 20px; }
+  .app-window .aw-ob-sheet { position: relative; left: auto; right: auto; top: auto; height: auto; margin: 84px 14px 0; padding: 13px 18px; }
+  .app-window .aw-ob-offer { width: calc(100% - 78px); padding-top: 0; }
+  .app-window .aw-ob-prov { height: 48px; }
+  .app-window .aw-ob-seat { height: 30px; padding: 0 13px; font-size: 14px; }
+  .app-window .aw-ob-spot { top: 3px; right: 8px; width: 72px; height: 72px; }
+  .app-window .aw-ob-actions { position: relative; left: auto; right: auto; bottom: auto; height: auto; padding: 22px 24px 18px; }
+}
+@container aw (max-width: 320px) {
+  .app-window .aw-ob-head { padding: 26px 18px 0; }
+  .app-window .aw-ob-h { font-size: 30px; }
+  .app-window .aw-ob-rule { top: 28px; }
+  .app-window .aw-ob-sheet { margin: 64px 10px 0; padding: 8px 14px 12px; }
+  .app-window .aw-ob-offer { width: 100%; }
+  .app-window .aw-ob-spot { display: none; }
+  .app-window .aw-ob-actions { padding: 18px 20px 14px; }
+}

@@ -1,0 +1,53 @@
+/* The moment where Intention is seen acting (demo.js). Its root carries data-replay; inside it,
+   [data-mark] is the small mark before what was said, [data-said] holds the spoken words,
+   [data-landed] holds what landed in the window and [data-caret] is the caret with its dot.
+
+   demo.js wraps the mark in .demo-mark, a button. The page's own mark is what shows at rest and
+   when the play is done; while the words come, .demo-sun, the same painting (the moon by
+   night), rises out of it and lands back on it. .demo-again is the small drawn replay arrow beside
+   the mark, shown once the text has landed. Everything here moves by transform and opacity, written by demo.js; nothing
+   is animated by CSS. Without JavaScript none of these elements exist and the page shows the
+   finished moment. */
+
+.demo-mark {
+  --demo-rest: 16px;
+  --demo-sun: 44.4px;
+  position: relative;
+  display: inline-block;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--w-ink, currentColor);
+  font: inherit;
+  line-height: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* The page's mark holds its slot in the line; demo.js hides it while the sun is up. */
+.demo-mark > [data-mark] { display: block; }
+.demo-mark:not(.is-measuring) > [data-mark] { margin: 0; }
+/* A 44 px target centred on the mark. It reaches a little over the first word, which also plays. */
+.demo-mark::after { content: ""; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; }
+.demo-mark:focus { outline: none; }
+.demo-mark:focus-visible::after { outline: 2px solid var(--w-ring, #3F7AA5); outline-offset: -4px; }
+
+.demo-sun, .demo-again { position: absolute; left: 50%; top: 50%; pointer-events: none; }
+.demo-sun { z-index: 1; width: var(--demo-sun); height: var(--demo-sun); margin: calc(var(--demo-sun) / -2) 0 0 calc(var(--demo-sun) / -2); opacity: 0; transform: scale(.36); }
+.demo-sun img { display: block; width: 100%; height: 100%; }
+/* The moon is cut just past its edge, as in the sky. */
+.demo-sun.is-moon img { clip-path: circle(35.6% at 51.3% 49.5%); }
+/* The heart of light, inside the paint: it opens with the voice and breathes in silence. It fades
+   out well inside the silhouette, so nothing ever shows beyond the painted edge. Its box is centred
+   on the disc (110 of 160 px across, 2 px right of and 0.7 px above the image's centre) and the
+   disc fills 90 percent of it. */
+.demo-heart { position: absolute; left: 13.1%; top: 11.3%; width: 76.4%; height: 76.4%; border-radius: 50%; opacity: 0; background: radial-gradient(circle at 43% 41%, rgba(255, 217, 138, .92) 0, rgba(255, 196, 102, .6) 18%, rgba(252, 145, 53, 0) 40%); }
+.demo-sun.is-moon .demo-heart { background: radial-gradient(circle at 46% 44%, rgba(255, 247, 224, .9) 0, rgba(255, 247, 224, .45) 20%, rgba(255, 247, 224, 0) 42%); }
+.demo-again { width: 14px; height: 14px; margin: calc(-7px + var(--demo-again-y, 0px)) 0 0 calc(-7px + var(--demo-again-x, 0px)); opacity: 0; overflow: visible; }
+.demo-again path { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* The words said. demo.js sets each word's opacity; the quote marks come in with the first
+   word and close with the last. */
+.demo-said::before { opacity: var(--demo-q1, 1); }
+.demo-said::after { opacity: var(--demo-q2, 1); }
+/* The dot above the caret grows and settles about its own centre. */
+[data-replay] [data-caret] > * { transform-origin: 50% 50%; }

@@ -1,0 +1,495 @@
+/* The home page's app windows (windows.html): the hero's Messages, and Nadia's
+   Gmail, X and Substack, each drawn as the app draws itself, in light and in the
+   app's own dark appearance.
+
+   Contract. Each fragment is one .app-window (plus .app-messages, .app-gmail,
+   .app-x or .app-substack). It is 520 px wide and shrinks to its column
+   (max-width: 100%), collapsing sidebars by its own width, so it holds down to a
+   288 px column. Light is the default; the window turns dark inside any ancestor
+   with data-mode="dark" and with data-mode="dark" on itself.
+
+   Every class here starts with aw- and every rule is scoped to .app-window, so
+   the live page's app styles (product/parts/apps/*.css, which also use
+   .app-gmail and .app-messages) and its global svg stroke cannot
+   reach in. The root only draws the frame; each app paints its own inner box.
+
+   The mark: a 2 px caret at the end of what landed, with a true circle above it
+   in the sun's warm red, edged with a 1.5 px ring of the field it sits on. It is
+   an even number of pixels wide so it centres on the caret on whole pixels. Its
+   centre sits on the caret's top end, its ring cutting the caret, so the pair
+   reads as an i: the space right of the caret is always empty, while a dot set
+   wholly above it landed on the letters of the longer line above. It is small
+   (6 px for 14 to 15 px text, 8 px for 16 px and up) for the same reason. */
+
+@font-face { font-family: "Google Sans Flex"; src: url("assets/fonts/GoogleSansFlex-Latin.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Roboto"; src: url("assets/fonts/Roboto-Latin.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+/* ---------- The frame ---------- */
+
+.app-window.app-window {
+  --aw-sys: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* The site's float (worlds.css --w-float), fixed here so a window over a painting keeps it. */
+  --aw-float: 0 0 0 .5px rgba(32,42,46,.22), 0 2px 2px -1px rgba(32,42,46,.08), 0 12px 24px -12px rgba(32,42,46,.35);
+  --aw-dot: #EE5F27;
+  --aw-dot-size: 6px;
+  --aw-dot-ring: #fff;
+  --aw-caret-h: 17px;
+  --aw-caret-c: currentColor;
+  /* Safari 26's one bar, shared by the four web apps. */
+  --sf-bg: #fbfbfb;
+  --sf-line: rgba(0,0,0,.09);
+  --sf-icon: rgba(0,0,0,.62);
+  --sf-url: rgba(0,0,0,.055);
+  --sf-text: #1d1d1f;
+  container: aw / inline-size;
+  display: block;
+  position: relative;
+  box-sizing: border-box;
+  width: 520px;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  isolation: isolate;
+  background: transparent;
+  box-shadow: var(--aw-float);
+  color: #1d1d1f;
+  font: 400 13px/1.35 var(--aw-sys);
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+[data-mode="dark"] .app-window.app-window, .app-window.app-window[data-mode="dark"] {
+  --aw-float: 0 0 0 .5px rgba(255,255,255,.22), 0 2px 2px -1px rgba(0,0,0,.4), 0 16px 32px -12px rgba(2,8,30,.8);
+  --sf-bg: #1f1f1f;
+  --sf-line: rgba(255,255,255,.08);
+  --sf-icon: rgba(255,255,255,.72);
+  --sf-url: rgba(255,255,255,.09);
+  --sf-text: #e5e5e7;
+}
+.app-window *, .app-window *::before, .app-window *::after { box-sizing: border-box; }
+.app-window svg { display: block; flex: none; overflow: visible; stroke: none; }
+/* The live page colours Gmail's and Slack's icons directly; here icons take their colour from what holds them. */
+.app-window.app-window svg { color: inherit; }
+.app-window img { display: block; flex: none; max-width: none; }
+/* People's pictures clip to their own corners. */
+.app-window .aw-pic { overflow: hidden; }
+.app-window b { font-weight: 700; }
+.app-window time { font-style: normal; }
+
+/* The traffic lights: 12 px, 8 px apart, in the system colours with their darker rims. */
+.app-window .aw-lights { display: flex; gap: 8px; flex: none; }
+.app-window .aw-lights i { display: block; width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; box-shadow: inset 0 0 0 .5px #e0443e; }
+.app-window .aw-lights i:nth-child(2) { background: #febc2e; box-shadow: inset 0 0 0 .5px #dea123; }
+.app-window .aw-lights i:nth-child(3) { background: #28c840; box-shadow: inset 0 0 0 .5px #1aab29; }
+[data-mode="dark"] .app-window .aw-lights i, .app-window[data-mode="dark"] .aw-lights i { box-shadow: inset 0 0 0 .5px rgba(0,0,0,.25); }
+
+/* The caret, with the dot above it. Zero width, so it never wraps away from the last word. */
+.app-window .aw-caret { position: relative; display: inline-block; width: 0; height: var(--aw-caret-h); vertical-align: text-bottom; }
+.app-window .aw-caret::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; border-radius: 1px; background: var(--aw-caret-c); }
+.app-window .aw-dot { position: absolute; left: calc(1px - var(--aw-dot-size) / 2); bottom: calc(100% - var(--aw-dot-size) / 2 - 1px); width: var(--aw-dot-size); height: var(--aw-dot-size); border-radius: 50%; background: var(--aw-dot); box-shadow: 0 0 0 1.5px var(--aw-dot-ring); }
+
+/* Safari 26, kept to one bar. */
+.app-window .aw-safari { display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px 0 14px; background: var(--sf-bg); box-shadow: inset 0 -1px 0 var(--sf-line); font: 400 12.5px/1 var(--aw-sys); color: var(--sf-text); }
+.app-window .aw-safari .aw-lights { margin-right: 4px; }
+.app-window .aw-sf-btns { display: flex; align-items: center; gap: 13px; color: var(--sf-icon); }
+.app-window .aw-sf-btns .aw-i { width: 16px; height: 16px; }
+.app-window .aw-sf-btns .is-off { opacity: .4; }
+.app-window .aw-sf-url { display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-width: 0; max-width: 260px; height: 26px; margin: 0 auto; padding: 0 10px; border-radius: 13px; background: var(--sf-url); white-space: nowrap; }
+.app-window .aw-sf-url > span { overflow: hidden; text-overflow: ellipsis; }
+.app-window .aw-fav { width: 13px; height: 13px; object-fit: contain; }
+/* X's mark, from assets/apps/x.svg, in the ink of whatever holds it. */
+.app-window .aw-xmark { display: block; flex: none; background: currentColor; -webkit-mask: url("assets/apps/x.svg") center / contain no-repeat; mask: url("assets/apps/x.svg") center / contain no-repeat; }
+
+@container aw (max-width: 440px) {
+  .app-window .aw-safari { gap: 10px; padding: 0 10px 0 12px; }
+  .app-window .aw-safari .aw-lights { margin-right: 0; gap: 7px; }
+  .app-window .aw-safari .aw-lights i { width: 11px; height: 11px; }
+  .app-window .aw-sf-lead .aw-i:first-child, .app-window .aw-sf-trail .aw-i:not(:last-child) { display: none; }
+}
+@container aw (max-width: 320px) {
+  .app-window .aw-sf-lead { display: none; }
+}
+
+/* ---------- Messages (macOS 26), in the hero ----------
+   The sidebar is Tahoe's inset panel with the lights in it; Leo's thread is
+   selected in the system blue. Grey incoming and blue outgoing bubbles with
+   their tails; the iMessage field between the plus and emoji buttons. The
+   caret takes the system accent, as the Mac's insertion point does. */
+.app-window.app-messages {
+  --m-bg: #fff;
+  --m-panel: #f2f2f4;
+  --m-panel-edge: rgba(0,0,0,.06);
+  --m-text: #000;
+  --m-muted: #6e6e73;
+  --m-icon: rgba(0,0,0,.6);
+  --m-search: rgba(0,0,0,.055);
+  --m-sel: #1a6fe0;
+  --m-in: #e9e9eb;
+  --m-in-text: #000;
+  --m-out: #0a6fd6;
+  --m-round: #fff;
+  --m-round-edge: rgba(0,0,0,.13);
+  --m-field: #fff;
+  --m-field-edge: rgba(0,0,0,.22);
+  --m-mono: linear-gradient(180deg, #a3a8b3, #848993);
+  --aw-dot-ring: var(--m-field);
+  --aw-caret-c: #0a6fd6;
+  --aw-caret-h: 17px;
+}
+[data-mode="dark"] .app-window.app-messages, .app-window.app-messages[data-mode="dark"] {
+  --m-bg: #1e1e1e;
+  --m-panel: #2a2a2c;
+  --m-panel-edge: rgba(255,255,255,.08);
+  --m-text: #f2f2f7;
+  --m-muted: #98989d;
+  --m-icon: rgba(255,255,255,.72);
+  --m-search: rgba(255,255,255,.08);
+  --m-sel: #0a5fd0;
+  --m-in: #3a3a3c;
+  --m-in-text: #fff;
+  --m-out: #0a6fd6;
+  --m-round: #2c2c2e;
+  --m-round-edge: rgba(255,255,255,.14);
+  --m-field: #252527;
+  --m-field-edge: rgba(255,255,255,.22);
+  --m-mono: linear-gradient(180deg, #74747a, #58585d);
+  --aw-caret-c: #3d95ff;
+}
+.app-window .aw-msg { display: flex; gap: 0; min-height: 380px; padding: 7px; background: var(--m-bg); color: var(--m-text); font: 400 13px/1.3 var(--aw-sys); }
+.app-window .aw-msg-side { display: flex; flex-direction: column; flex: none; width: 184px; padding: 11px 8px 8px; border-radius: 12px; background: var(--m-panel); box-shadow: inset 0 0 0 .5px var(--m-panel-edge); }
+.app-window .aw-msg-sidetop { display: flex; align-items: center; justify-content: space-between; height: 20px; padding: 0 4px 0 5px; color: var(--m-icon); }
+.app-window .aw-msg-sidetop .aw-i { width: 17px; height: 17px; }
+.app-window .aw-msg-search { display: flex; align-items: center; gap: 6px; height: 26px; margin: 12px 0 8px; padding: 0 8px; border-radius: 8px; background: var(--m-search); color: var(--m-muted); font-size: 12.5px; }
+.app-window .aw-msg-search .aw-i { width: 13px; height: 13px; }
+.app-window .aw-msg-row { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 9px; align-items: center; padding: 7px 7px; border-radius: 9px; }
+.app-window .aw-msg-row.is-on { background: var(--m-sel); color: #fff; }
+.app-window .aw-msg-who { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 6px; min-width: 0; }
+.app-window .aw-msg-who b { overflow: hidden; font-size: 13px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.app-window .aw-msg-who time { font-size: 11px; color: var(--m-muted); }
+.app-window .aw-msg-who > span { grid-column: 1 / -1; overflow: hidden; font-size: 12px; line-height: 15px; color: var(--m-muted); white-space: nowrap; text-overflow: ellipsis; }
+.app-window .aw-msg-row.is-on time, .app-window .aw-msg-row.is-on .aw-msg-who > span { color: rgba(255,255,255,.82); }
+/* Apple's default contact picture: grey gradient and white initial. */
+.app-window .aw-mono { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--m-mono); color: #fff; font: 500 15px/1 var(--aw-sys); letter-spacing: .02em; }
+
+.app-window .aw-msg-main { display: flex; flex-direction: column; flex: 1; min-width: 0; padding: 0 9px 5px 14px; }
+.app-window .aw-msg-head { position: relative; display: flex; align-items: flex-start; justify-content: flex-end; height: 64px; padding-top: 4px; }
+.app-window .aw-msg-head .aw-lights { display: none; margin: 8px auto 0 4px; }
+.app-window .aw-msg-contact { position: absolute; left: 50%; top: 0; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); }
+.app-window .aw-msg-contact .aw-mono { width: 32px; height: 32px; font-size: 14px; }
+.app-window .aw-msg-name { display: flex; align-items: center; gap: 1px; margin-top: 3px; padding: 2px 6px 2px 9px; border-radius: 11px; background: var(--m-round); box-shadow: 0 0 0 .5px var(--m-round-edge), 0 1px 3px rgba(0,0,0,.08); font-size: 11.5px; line-height: 15px; font-weight: 600; white-space: nowrap; }
+.app-window .aw-msg-name .aw-i { width: 9px; height: 9px; color: var(--m-muted); }
+.app-window .aw-round { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--m-round); color: var(--m-icon); box-shadow: 0 0 0 .5px var(--m-round-edge), 0 1px 3px rgba(0,0,0,.08); }
+.app-window .aw-round .aw-i { width: 16px; height: 16px; }
+
+.app-window .aw-msg-thread { display: flex; flex-direction: column; flex: 1; justify-content: flex-end; padding: 0 6px; font-size: 14px; line-height: 19px; }
+.app-window .aw-msg-stamp { margin: 0 0 6px; text-align: center; font-size: 11px; line-height: 14px; color: var(--m-muted); }
+.app-window .aw-msg-stamp b { display: block; font-weight: 600; }
+/* Bubbles from one sender group 2 px apart; only the last in a group has a tail. */
+.app-window .aw-in { position: relative; z-index: 0; align-self: flex-start; max-width: 76%; margin: 2px 0 0 6px; padding: 6px 11px; border-radius: 17px; background: var(--m-in); color: var(--m-in-text); }
+.app-window .aw-in.is-first { margin-top: 4px; }
+.app-window .aw-in::before, .app-window .aw-in::after { content: ""; position: absolute; z-index: -1; bottom: 0; height: 18px; }
+.app-window .aw-in::before { left: -6px; width: 18px; background: var(--m-in); border-bottom-right-radius: 14px; }
+.app-window .aw-in::after { left: -9px; width: 9px; background: var(--m-bg); border-bottom-right-radius: 9px; }
+.app-window .aw-in:has(+ .aw-in)::before, .app-window .aw-in:has(+ .aw-in)::after { display: none; }
+
+.app-window .aw-msg-bar { display: flex; align-items: flex-end; gap: 8px; margin-top: 14px; }
+.app-window .aw-msg-bar .aw-round { width: 30px; height: 30px; }
+.app-window .aw-msg-field { flex: 1; min-width: 0; min-height: 30px; padding: 5px 13px; border-radius: 15px; background: var(--m-field); box-shadow: inset 0 0 0 .5px var(--m-field-edge), 0 1px 3px rgba(0,0,0,.05); font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
+
+@container aw (max-width: 440px) {
+  .app-window .aw-msg { min-height: 300px; padding: 0; }
+  .app-window .aw-msg-side { display: none; }
+  .app-window .aw-msg-main { padding: 6px 10px 10px; }
+  .app-window .aw-msg-head { justify-content: space-between; }
+  .app-window .aw-msg-head .aw-lights { display: flex; margin: 9px 0 0 4px; gap: 7px; }
+  .app-window .aw-msg-head .aw-lights i { width: 11px; height: 11px; }
+  .app-window .aw-msg-thread { padding: 0 4px; }
+}
+
+/* ---------- Gmail on the web (Material 3) in Safari ----------
+   Gmail's interface in Google Sans and Roboto, the mail in Arial; Material
+   Symbols icons (Apache 2.0). The thread with Marcus's mail and its
+   attachment, then the inline reply box, written. Dark is Gmail's Dark theme
+   in Safari's dark chrome, as the live page draws it. */
+.app-window.app-gmail {
+  --g-ui: "Google Sans Flex", "Google Sans", Roboto, Arial, sans-serif;
+  --g-page: #f6f8fc;
+  --g-card: #fff;
+  --g-text: #1f1f1f;
+  --g-mail: #222;
+  --g-icon: #444746;
+  --g-muted: #5e5e5e;
+  --g-line: #e3e3e3;
+  --g-search: #e9eef6;
+  --g-me: #c2e7ff;
+  --g-me-text: #001d35;
+  --g-tag: #e8eaed;
+  --g-send: #0b57d0;
+  --g-send-text: #fff;
+  --g-box-edge: rgba(0,0,0,.07);
+  --g-file-edge: #dadce0;
+  --aw-dot-ring: var(--g-card);
+  --aw-caret-c: #1f1f1f;
+  --aw-caret-h: 17px;
+}
+[data-mode="dark"] .app-window.app-gmail, .app-window.app-gmail[data-mode="dark"] {
+  --g-page: #111;
+  --g-card: #2c2c2c;
+  --g-text: #e3e3e3;
+  --g-mail: #e3e3e3;
+  --g-icon: #c4c7c5;
+  --g-muted: #a8abaf;
+  --g-line: #444746;
+  --g-search: #474747;
+  --g-me: #004a77;
+  --g-me-text: #c2e7ff;
+  --g-tag: #444746;
+  --g-send: #a8c7fa;
+  --g-send-text: #062e6f;
+  --g-box-edge: rgba(255,255,255,.16);
+  --g-file-edge: #5f6368;
+  --aw-caret-c: #e3e3e3;
+}
+.app-window .aw-gm { padding-bottom: 10px; background: var(--g-page); color: var(--g-text); font: 400 14px/20px Roboto, Arial, sans-serif; }
+.app-window .aw-gm .aw-i { width: 20px; height: 20px; color: var(--g-icon); }
+.app-window .aw-gm-top { display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 14px 0 6px; }
+.app-window .aw-gm-menu { display: grid; place-items: center; width: 40px; height: 40px; }
+.app-window .aw-gm-logo { width: 26px; height: 20px; margin-right: 8px; }
+.app-window .aw-gm-search { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; height: 40px; padding: 0 14px; border-radius: 20px; background: var(--g-search); font: 400 15px/1 var(--g-ui); color: var(--g-icon); white-space: nowrap; }
+.app-window .aw-gm-search span { overflow: hidden; }
+.app-window .aw-gm-me { display: grid; place-items: center; flex: none; width: 30px; height: 30px; margin-left: 6px; border-radius: 50%; background: var(--g-me); color: var(--g-me-text); font: 500 14px/1 var(--g-ui); }
+.app-window .aw-gm-card { margin: 0 10px; padding: 14px 0 16px; border-radius: 16px; background: var(--g-card); }
+.app-window .aw-gm-subject { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding: 0 18px 0 66px; font: 400 20px/26px var(--g-ui); color: var(--g-text); }
+.app-window .aw-gm-tag { height: 20px; padding: 0 6px; border-radius: 4px; background: var(--g-tag); font: 400 12px/20px Roboto, Arial, sans-serif; color: var(--g-icon); }
+.app-window .aw-gm-msg { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 0 12px; padding: 16px 18px 0 18px; }
+.app-window .aw-gm-face { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: #fff; font: 400 16px/1 var(--g-ui); }
+.app-window .aw-gm-msg .aw-gm-face { grid-row: span 4; }
+/* Gmail's letter pictures, one step deeper so the white initial reads at 4.5:1 or better. */
+.app-window .aw-gm-face.c-marcus { background: #0b7a40; }
+.app-window .aw-gm-face.c-nadia { background: #8430a0; }
+.app-window .aw-gm-from { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.app-window .aw-gm-from b { overflow: hidden; font: 700 14px/20px var(--g-ui); white-space: nowrap; text-overflow: ellipsis; }
+.app-window .aw-gm-from time { margin-left: auto; font-size: 12px; color: var(--g-muted); white-space: nowrap; }
+.app-window .aw-gm-msgtools { display: flex; gap: 14px; margin-left: 12px; }
+.app-window .aw-gm-msgtools .aw-i { width: 18px; height: 18px; }
+.app-window .aw-gm-to { display: flex; align-items: center; font-size: 12px; line-height: 16px; color: var(--g-muted); }
+.app-window .aw-gm-to .aw-i { width: 16px; height: 16px; color: var(--g-muted); }
+.app-window .aw-gm-text { margin-top: 10px; font: 14px/20px Arial, Helvetica, sans-serif; color: var(--g-mail); }
+/* Gmail's editor separates paragraphs with an empty line. */
+.app-window .aw-gm-text > div + div, .app-window .aw-gm-body > div + div { margin-top: 20px; }
+.app-window .aw-gm-file { display: flex; align-items: center; gap: 10px; width: max-content; max-width: 100%; height: 40px; margin-top: 14px; padding: 0 14px 0 8px; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--g-file-edge); font: 500 13px/1 var(--g-ui); color: var(--g-text); white-space: nowrap; }
+.app-window .aw-gm-file > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.app-window .aw-gm-pdf { display: grid; place-items: center; flex: none; width: 26px; height: 24px; border-radius: 4px; background: #c5221f; color: #fff; font: 700 9px/1 Roboto, Arial, sans-serif; letter-spacing: .02em; }
+
+/* The inline reply: a box with a hairline edge and a faint lift, her picture beside it. */
+.app-window .aw-gm-reply { position: relative; margin: 18px 18px 0 66px; padding-top: 10px; border-radius: 16px; background: var(--g-card); box-shadow: 0 0 0 1px var(--g-box-edge), 0 1px 3px rgba(60,64,67,.14); }
+.app-window .aw-gm-replyface { position: absolute; left: -48px; top: 0; }
+.app-window .aw-gm-replyto { display: flex; align-items: center; gap: 2px; margin: 0 16px 10px; color: var(--g-text); white-space: nowrap; }
+.app-window .aw-gm-replyto .aw-i { width: 18px; height: 18px; }
+.app-window .aw-gm-replyto .aw-gm-drop { margin-right: 6px; }
+.app-window .aw-gm-body { margin: 0 16px; font: 14px/20px Arial, Helvetica, sans-serif; color: var(--g-mail); overflow-wrap: anywhere; }
+.app-window .aw-gm-foot { display: flex; align-items: center; height: 56px; margin-top: 6px; padding: 0 14px 0 16px; }
+.app-window .aw-gm-send { display: flex; align-items: center; flex: none; height: 36px; border-radius: 18px; background: var(--g-send); color: var(--g-send-text); font: 500 14px/1 var(--g-ui); }
+.app-window .aw-gm-send > span { padding: 0 14px 0 20px; line-height: 36px; box-shadow: 1px 0 0 rgba(0,0,0,.22); }
+.app-window .aw-gm-send .aw-i { width: 28px; height: 22px; padding: 0 6px 0 4px; color: var(--g-send-text); }
+.app-window .aw-gm-tools { display: flex; gap: 12px; min-width: 0; margin-left: 14px; overflow: hidden; }
+.app-window .aw-gm-trash { margin-left: auto; padding-left: 8px; box-sizing: content-box; }
+
+@container aw (max-width: 500px) { .app-window .aw-gm-extra { display: none; } }
+@container aw (max-width: 440px) {
+  .app-window .aw-gm-top { height: 50px; padding-right: 10px; }
+  .app-window .aw-gm-logo { margin-right: 4px; }
+  .app-window .aw-gm-search { height: 36px; font-size: 14px; }
+  .app-window .aw-gm-card { margin: 0 6px; padding-top: 12px; }
+  .app-window .aw-gm-subject { padding: 0 14px; font-size: 18px; line-height: 24px; }
+  .app-window .aw-gm-msg { grid-template-columns: 32px minmax(0, 1fr); gap: 0 10px; padding: 12px 14px 0; }
+  .app-window .aw-gm-face { width: 32px; height: 32px; font-size: 15px; }
+  .app-window .aw-gm-msgtools .aw-i:not(:last-child) { display: none; }
+  .app-window .aw-gm-msgtools { margin-left: 8px; }
+  .app-window .aw-gm-reply { margin: 14px 10px 0; }
+  .app-window .aw-gm-replyface { display: none; }
+  .app-window .aw-gm-foot { padding: 0 12px 0 14px; }
+  .app-window .aw-gm-tools .aw-i:nth-child(n+3) { display: none; }
+  /* A narrow window keeps the whole thread on a phone screen: Safari's bar already names Gmail, and
+     paragraphs sit closer, as Gmail's own narrow view sets them. */
+  .app-window .aw-gm-top { display: none; }
+  .app-window .aw-gm-card { margin-top: 6px; }
+  .app-window .aw-gm-text, .app-window .aw-gm-body { font-size: 13.5px; line-height: 19px; }
+  .app-window .aw-gm-text > div + div, .app-window .aw-gm-body > div + div { margin-top: 10px; }
+  .app-window .aw-gm-file { height: 36px; margin-top: 10px; }
+  .app-window .aw-gm-foot { height: 50px; margin-top: 2px; }
+  /* As in Gmail's phone layout, the picture sits beside the name and the mail runs the full width under it. */
+  .app-window .aw-gm-msg .aw-gm-face { grid-row: span 2; }
+  .app-window .aw-gm-text, .app-window .aw-gm-file { grid-column: 1 / -1; }
+}
+@container aw (max-width: 320px) {
+  .app-window .aw-gm-menu { display: none; }
+  .app-window .aw-gm-top { padding-left: 12px; }
+  .app-window .aw-gm-tools .aw-i:nth-child(n+2) { display: none; }
+  .app-window .aw-gm-body { margin: 0 12px; }
+  .app-window .aw-gm-reply { margin: 12px 4px 0; }
+  .app-window .aw-gm-replyto { margin-inline: 12px; }
+  /* Under 352 px the attachment and the "to me" line go, so the thread fits a 640 px screen; the
+     mail still says the lease is attached. */
+  .app-window .aw-gm-file, .app-window .aw-gm-to { display: none; }
+  .app-window .aw-gm-msg .aw-gm-face { grid-row: span 1; }
+  .app-window .aw-gm-text, .app-window .aw-gm-body { font-size: 13px; }
+}
+/* On a short phone screen the thread and the reply sit closer still. */
+@media (max-height: 720px) {
+  @container aw (max-width: 440px) {
+    .app-window .aw-gm-card { padding: 10px 0 8px; }
+    .app-window .aw-gm-msg { padding-top: 10px; }
+    .app-window .aw-gm-text { margin-top: 8px; }
+    .app-window .aw-gm-text, .app-window .aw-gm-body { line-height: 18px; }
+    .app-window .aw-gm-text > div + div, .app-window .aw-gm-body > div + div { margin-top: 8px; }
+    .app-window .aw-gm-reply { margin-top: 10px; padding-top: 8px; }
+    .app-window .aw-gm-replyto { margin-bottom: 6px; }
+    .app-window .aw-gm-foot { height: 44px; margin-top: 0; }
+    .app-window .aw-gm { padding-bottom: 6px; }
+  }
+  /* A 360 by 640 screen takes the narrow thread too. */
+  @container aw (max-width: 330px) {
+    .app-window .aw-gm-file, .app-window .aw-gm-to { display: none; }
+    .app-window .aw-gm-msg .aw-gm-face { grid-row: span 1; }
+    .app-window .aw-gm-text, .app-window .aw-gm-body { font-size: 13px; }
+  }
+}
+
+/* ---------- X on the web in Safari ----------
+   The home column with For you and Following, the compose box written, the
+   reply setting, the blue toolbar and the Post button enabled. X falls back
+   to the system font on a Mac. */
+.app-window.app-x {
+  --x-bg: #fff;
+  --x-text: #0f1419;
+  --x-muted: #536471;
+  --x-line: #eff3f4;
+  --x-blue: #1d9bf0;
+  --x-post: #0f1419;
+  --x-post-text: #fff;
+  --aw-dot-ring: var(--x-bg);
+  --aw-caret-c: #0f1419;
+  --aw-caret-h: 23px;
+  --aw-dot-size: 8px;
+}
+[data-mode="dark"] .app-window.app-x, .app-window.app-x[data-mode="dark"] {
+  --x-bg: #000;
+  --x-text: #e7e9ea;
+  --x-muted: #71767b;
+  --x-line: #2f3336;
+  --x-post: #eff3f4;
+  --x-post-text: #0f1419;
+  --aw-caret-c: #e7e9ea;
+}
+.app-window.app-x .aw-safari .aw-fav { color: var(--sf-text); }
+.app-window .aw-x { display: grid; grid-template-columns: 58px minmax(0, 1fr); background: var(--x-bg); color: var(--x-text); font: 400 15px/20px var(--aw-sys); }
+.app-window .aw-x-nav { display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 14px 0 18px; color: var(--x-text); }
+.app-window .aw-x-nav .aw-i { width: 23px; height: 23px; }
+.app-window .aw-x-logo { width: 24px; height: 22px; margin-bottom: 2px; }
+.app-window .aw-x-main { min-width: 0; padding-bottom: 6px; box-shadow: inset 1px 0 0 var(--x-line); }
+.app-window .aw-x-tabs { display: flex; height: 50px; box-shadow: inset 0 -1px 0 var(--x-line); }
+.app-window .aw-x-tabs > span { display: flex; justify-content: center; flex: 1; font-size: 15px; line-height: 50px; color: var(--x-muted); white-space: nowrap; }
+.app-window .aw-x-tabs b { position: relative; font-weight: 500; }
+.app-window .aw-x-tabs .is-on { color: var(--x-text); }
+.app-window .aw-x-tabs .is-on b { font-weight: 700; }
+.app-window .aw-x-tabs .is-on b::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; border-radius: 2px; background: var(--x-blue); }
+.app-window .aw-x-compose { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 10px; padding: 14px 16px 8px; }
+.app-window .aw-x-avatar { width: 40px; height: 40px; border-radius: 50%; }
+.app-window .aw-x-col { min-width: 0; }
+.app-window .aw-x-text { padding: 7px 0 14px; font-size: 19px; line-height: 25px; overflow-wrap: anywhere; }
+.app-window .aw-x-reply { display: flex; align-items: center; gap: 5px; height: 34px; padding-bottom: 10px; box-shadow: inset 0 -1px 0 var(--x-line); color: var(--x-blue); font-size: 14px; font-weight: 700; white-space: nowrap; }
+.app-window .aw-x-reply .aw-i { width: 15px; height: 15px; }
+.app-window .aw-x-bar { display: flex; align-items: center; height: 52px; }
+.app-window .aw-x-tools { display: flex; align-items: center; gap: 15px; min-width: 0; overflow: hidden; color: var(--x-blue); }
+.app-window .aw-x-tools .aw-i { width: 19px; height: 19px; }
+.app-window .aw-x-post { flex: none; height: 36px; margin-left: auto; padding: 0 17px; border-radius: 18px; background: var(--x-post); color: var(--x-post-text); font-size: 15px; line-height: 36px; font-weight: 700; }
+
+@container aw (max-width: 440px) {
+  .app-window .aw-x { grid-template-columns: minmax(0, 1fr); }
+  .app-window .aw-x-nav { display: none; }
+  .app-window .aw-x-main { box-shadow: none; }
+  .app-window .aw-x-compose { padding: 12px 12px 6px; }
+  .app-window .aw-x-text { font-size: 18px; line-height: 24px; }
+  .app-window .aw-x-tools { gap: 13px; }
+  .app-window .aw-x-extra { display: none; }
+}
+@container aw (max-width: 320px) {
+  .app-window .aw-x-tools .aw-i:nth-child(n+4) { display: none; }
+}
+
+/* ---------- Substack's editor in Safari ----------
+   The draft header with the publication and Continue, the
+   formatting bar, the title and subtitle fields, her byline, then the body.
+   The interface is in the system font; the body is set in the serif a
+   designer's newsletter would choose. Dark is the editor by lamplight: a
+   neutral near-black page and warm grey text, the accent kept. */
+.app-window.app-substack {
+  --s-bg: #fff;
+  --s-text: #363737;
+  --s-title: #000;
+  --s-muted: #868787;
+  --s-line: rgba(0,0,0,.08);
+  --s-icon: rgba(0,0,0,.62);
+  --s-btn-edge: rgba(0,0,0,.16);
+  --s-chip: rgba(0,0,0,.05);
+  --s-accent: #ff6719;
+  --s-logo: #ece2d6;
+  --s-logo-text: #2b2420;
+  --aw-dot-ring: var(--s-bg);
+  --aw-caret-c: #363737;
+  --aw-caret-h: 22px;
+  --aw-dot-size: 8px;
+}
+[data-mode="dark"] .app-window.app-substack, .app-window.app-substack[data-mode="dark"] {
+  --s-bg: #1a1a1a;
+  --s-text: #dcdad7;
+  --s-title: #f5f3f0;
+  --s-muted: #8f8d8a;
+  --s-line: rgba(255,255,255,.09);
+  --s-icon: rgba(255,255,255,.7);
+  --s-btn-edge: rgba(255,255,255,.2);
+  --s-chip: rgba(255,255,255,.07);
+  --s-logo: #3a332c;
+  --s-logo-text: #f1e6d8;
+  --aw-caret-c: #dcdad7;
+}
+.app-window .aw-ss { background: var(--s-bg); color: var(--s-text); font: 400 14px/20px var(--aw-sys); }
+.app-window .aw-ss .aw-i { width: 18px; height: 18px; }
+.app-window .aw-ss-head { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 14px 0 14px; box-shadow: inset 0 -1px 0 var(--s-line); color: var(--s-icon); }
+.app-window .aw-ss-pub { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--s-title); }
+.app-window .aw-ss-pub b { overflow: hidden; font-size: 14.5px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.app-window .aw-ss-publogo { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 6px; background: var(--s-logo); color: var(--s-logo-text); font: 700 15px/1 Georgia, "Times New Roman", serif; }
+.app-window .aw-ss-state { margin-left: auto; font-size: 13px; color: var(--s-muted); }
+.app-window .aw-ss-btn { flex: none; height: 32px; padding: 0 13px; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--s-btn-edge); font-size: 13.5px; line-height: 32px; font-weight: 600; color: var(--s-title); white-space: nowrap; }
+.app-window .aw-ss-btn.is-primary { background: var(--s-accent); box-shadow: none; color: #fff; }
+.app-window .aw-ss-tools { display: flex; align-items: center; gap: 13px; height: 42px; padding: 0 16px; box-shadow: inset 0 -1px 0 var(--s-line); color: var(--s-icon); white-space: nowrap; overflow: hidden; }
+.app-window .aw-ss-tools > i { flex: none; width: 1px; height: 18px; background: var(--s-line); }
+.app-window .aw-ss-tools .aw-i { width: 17px; height: 17px; }
+.app-window .aw-ss-style, .app-window .aw-ss-more { display: flex; align-items: center; gap: 2px; font-size: 13.5px; }
+.app-window .aw-ss-style .aw-i, .app-window .aw-ss-more .aw-i { width: 14px; height: 14px; }
+.app-window .aw-ss-more { margin-left: auto; }
+.app-window .aw-ss-doc { max-width: 440px; margin: 0 auto; padding: 18px 26px 28px; }
+.app-window .aw-ss-title { font: 700 22px/28px var(--aw-sys); letter-spacing: -.01em; color: var(--s-title); }
+.app-window .aw-ss-byline { display: flex; align-items: center; gap: 7px; width: max-content; max-width: 100%; height: 30px; margin-top: 10px; padding: 0 12px 0 4px; border-radius: 15px; background: var(--s-chip); font-size: 13px; font-weight: 500; color: var(--s-title); white-space: nowrap; }
+.app-window .aw-ss-avatar { width: 22px; height: 22px; border-radius: 50%; }
+.app-window .aw-ss-body { margin-top: 16px; font: 400 18px/29px Georgia, "Times New Roman", serif; color: var(--s-text); overflow-wrap: anywhere; }
+
+@container aw (max-width: 440px) {
+  .app-window .aw-ss-head { gap: 8px; padding: 0 10px; }
+  .app-window .aw-ss-state, .app-window .aw-ss-btn:not(.is-primary) { display: none; }
+  .app-window .aw-ss-btn.is-primary { margin-left: auto; }
+  .app-window .aw-ss-tools { gap: 12px; padding: 0 12px; }
+  .app-window .aw-ss-extra { display: none; }
+  .app-window .aw-ss-doc { padding: 14px 18px 22px; }
+  .app-window .aw-ss-title { font-size: 20px; line-height: 26px; }
+  .app-window .aw-ss-body { font-size: 17px; line-height: 27px; }
+}
+@container aw (max-width: 320px) {
+  .app-window .aw-ss-tools .aw-i:nth-of-type(n+4), .app-window .aw-ss-tools > i:nth-of-type(n+2) { display: none; }
+}

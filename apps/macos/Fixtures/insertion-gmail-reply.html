@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Intention Gmail reply fixture</title>
+<!--
+Every name, address and message on this page is synthetic. The page copies
+the structure Gmail on the web gave an inline reply on October 6, 2026, as
+measured from its document: the roles, labels and class names Intention's
+compose reader meets, and which parts are hidden. A collapsed thread shows
+its first message and the one before the last as headers with a snippet,
+the messages between them as one "N older messages" button, and the last
+message in full, with the inline reply inside the last message's list item.
+The reply's recipients show as a summary with the first one's address and a
+count of the rest, and its subject only as the label of its region. Add
+?expanded to show every message in full, as after Expand all. The floating
+New Message window sits outside the thread, with a visible To field and
+Subject field. Nothing here is sent anywhere.
+-->
+<style>
+  body { font: 14px/1.45 -apple-system, system-ui, sans-serif; margin: 16px; max-width: 760px; color: #202124; }
+  [role=listitem], .kQ { border-top: 1px solid #e0e0e0; padding: 8px 0; }
+  .hidden { display: none; }
+  [contenteditable] { min-height: 60px; border: 1px solid #c4c7c5; padding: 6px; }
+  [role=dialog] { margin-top: 24px; border: 1px solid #c4c7c5; padding: 8px; }
+</style>
+</head>
+<body>
+<div role="main" class="nH">
+  <div class="ha"><h2 class="hP" tabindex="-1">Venue options for the October offsite</h2></div>
+  <div role="list" class="bh" id="thread"></div>
+</div>
+<div role="dialog" class="nH">
+  <h2>New Message</h2>
+  <div role="region" class="aoI" aria-label="New Message">
+    <table role="presentation" class="aoP">
+      <tbody><tr><td>
+        <div role="listbox" class="afx" aria-label="Search Field">
+          <div role="option" class="afV" data-hovercard-id="tomas@contoso.example">Tomás Ortega</div>
+          <input role="combobox" aria-label="To recipients" class="agP" type="text">
+        </div>
+        <input name="subjectbox" aria-label="Subject" class="aoT" value="Catering for the offsite">
+        <div role="textbox" id="new-body" class="Am editable" contenteditable="true" aria-label="Message Body" aria-multiline="true"><br></div>
+      </td></tr></tbody>
+    </table>
+  </div>
+</div>
+<script>
+const me = { name: 'Sam Lee', address: 'sam@fabrikam.example' };
+const priya = { name: 'Priya Raman', address: 'priya@northwind.example' };
+const tomas = { name: 'Tomás Ortega', address: 'tomas@contoso.example' };
+const messages = [
+  { from: priya, to: 'Tomás, me', time: 'Oct 1, 9:12 AM', body: ['Hi both,', 'I shortlisted three venues for the offsite: Harbor Hall, the Lindenwood Barn and Quarry Loft. Harbor Hall has the best AV. Could you each pick a favourite by Wednesday?', 'Priya'] },
+  { from: me, to: 'Priya, Tomás', time: 'Oct 1, 11:40 AM', body: ['Thanks Priya. Quarry Loft is out for me, the stairs are a problem for Ana.', 'Sam'] },
+  { from: tomas, to: 'Priya, me', time: 'Oct 2, 8:05 AM', body: ['Harbor Hall works for me if they can do the 16th and 17th. Lindenwood is lovely but an hour further out.', 'Tomás'] },
+  { from: me, to: 'Priya, Tomás', time: 'Oct 2, 2:30 PM', body: ['Agree on Harbor Hall. The budget allows up to 4,800 for the two days.', 'Sam'] },
+  { from: tomas, to: 'Priya, me', time: 'Oct 3, 4:51 PM', body: ['I called Harbor Hall, they have the 16th and 17th pencilled in for us until Friday.', 'Tomás'] },
+  { from: priya, to: 'Tomás, me', time: 'Oct 4, 10:02 AM', body: ['Quick update: Harbor Hall can hold the 16th and 17th for 4,650, and the deposit is due Friday.', 'Sam, can you confirm the headcount by Thursday so I can sign?', 'Priya'] },
+];
+const expanded = location.search.includes('expanded');
+const thread = document.getElementById('thread');
+const element = (tag, attributes = {}, children = []) => {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+  for (const child of [].concat(children)) node.append(child);
+  return node;
+};
+const sender = message => element('span', { role: 'gridcell', class: 'gD', email: message.from.address }, [element('span', {}, [message.from.name])]);
+function collapsed(message) {
+  return element('div', { role: 'listitem', class: 'kv', tabindex: '-1', 'aria-expanded': 'false' }, [
+    element('div', { class: 'gE' }, [sender(message), ' ',
+      element('span', { role: 'gridcell', class: 'g3', title: message.time }, [element('span', {}, [message.time])]),
+      element('div', { role: 'gridcell', class: 'iA g6' }, [element('span', {}, [message.body.join(' ').slice(0, 120)])])])]);
+}
+function full(message, reply) {
+  const header = element('div', { class: 'gE iv gt' }, [
+    element('h3', { class: 'iw' }, [element('span', { class: 'gD', email: message.from.address }, [element('span', {}, [message.from.name])]), ' ',
+      element('span', { class: 'go' }, [element('span', { 'aria-hidden': 'true' }, ['<']), message.from.address, element('span', { 'aria-hidden': 'true' }, ['>'])])]),
+    element('span', { role: 'gridcell', class: 'g3', title: message.time }, [element('span', {}, [message.time])]),
+    element('button', { 'aria-label': 'Reply' }),
+    element('div', { class: 'iw ajw' }, [element('span', { class: 'hb' }, ['to ' + message.to])])]);
+  const body = element('div', { class: 'a3s aiL' }, message.body.map(line => element('p', {}, [line])));
+  const content = [element('div', { class: 'gs' }, [header, body])];
+  if (reply) content.push(reply);
+  return element('div', { role: 'listitem', class: 'h7', tabindex: '-1', 'aria-expanded': 'true' },
+    [element('div', { class: 'adn ads' }, content)]);
+}
+function inlineReply() {
+  const summary = element('div', { class: 'aoD hl', tabindex: '1' }, [
+    element('div', { class: 'oL aDm' }, [
+      element('span', { email: priya.address }, [priya.name + ' (' + priya.address + ')']),
+      element('span', { class: 'aDp' }, ['1 more'])])]);
+  const hiddenTo = element('div', { name: 'to', class: 'anm hidden' }, [
+    element('div', { role: 'listbox', class: 'afx' }, [
+      element('div', { role: 'option', class: 'afV', 'data-hovercard-id': priya.address }, [priya.name])])]);
+  const hiddenCc = element('div', { name: 'cc', class: 'anm hidden' }, [
+    element('div', { role: 'listbox', class: 'afx' }, [
+      element('div', { role: 'option', class: 'afV', 'data-hovercard-id': tomas.address }, [tomas.name])])]);
+  const subject = element('input', { name: 'subjectbox', 'aria-label': 'Subject', class: 'aoT hidden', value: 'Re: Venue options for the October offsite' });
+  const body = element('div', { role: 'textbox', id: 'reply-body', class: 'Am editable', contenteditable: 'true', 'aria-label': 'Message Body', 'aria-multiline': 'true' }, [
+    element('span', { class: 'jKzJCd', contenteditable: 'false' }, [element('span', { class: 'bxX', 'aria-hidden': 'true' }, ['Press / to write using your Gmail & Drive'])]),
+    element('br')]);
+  const trimmed = element('div', { role: 'button', class: 'ajR', 'aria-label': 'Show trimmed content', tabindex: '-1' });
+  const send = element('div', { role: 'button', class: 'T-I aoO', 'aria-label': 'Send ‪(⌘Enter)‬' }, ['Send']);
+  const region = element('div', { role: 'region', class: 'aoI', 'aria-label': 'Re: Venue options for the October offsite' }, [
+    element('table', { role: 'presentation', class: 'aoP' }, [element('tbody', {}, [element('tr', {}, [element('td', {}, [summary, hiddenTo, hiddenCc, subject, body, trimmed, send])])])])]);
+  return element('div', { class: 'gA gt' }, [element('div', { class: 'ip adB' }, [element('div', { class: 'M9' }, [region])])]);
+}
+const last = messages.length - 1;
+if (expanded) {
+  messages.forEach((message, index) => thread.append(full(message, index === last ? inlineReply() : null)));
+} else {
+  const hidden = messages.slice(1, last - 1);
+  thread.append(collapsed(messages[0]));
+  thread.append(element('div', { class: 'kQ bg adv', tabindex: '-1' }, [
+    element('span', { role: 'button', class: 'adx', tabindex: '0', 'aria-label': hidden.length + ' older messages', 'aria-expanded': 'false' },
+      [element('span', { 'aria-hidden': 'true' }, [' ' + hidden.length + ' '])])]));
+  thread.append(collapsed(messages[last - 1]));
+  thread.append(full(messages[last], inlineReply()));
+}
+</script>
+</body>
+</html>

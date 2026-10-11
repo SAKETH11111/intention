@@ -1,0 +1,4 @@
+#include "Shared.xcconfig"
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG
+ENABLE_HARDENED_RUNTIME = NO
+#include? "Local.xcconfig"

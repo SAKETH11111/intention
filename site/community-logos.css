@@ -1,0 +1,79 @@
+/* Community affiliations, not institutional endorsements. */
+.community-logos{position:relative;padding:45px 0 33px;background:var(--paper);overflow:hidden}
+.logo-window{width:100%;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.logo-track{display:flex;width:max-content}
+.logo-group{display:flex;align-items:center;gap:80px;flex:none;list-style:none;margin:0;padding:0 80px 0 0}
+.logo-group li{display:flex;align-items:center;justify-content:center;width:190px;height:100px;flex:none;color:#777c7b}
+.logo-group img{display:block;width:180px;height:70px;object-fit:contain;filter:grayscale(1);opacity:.56;mix-blend-mode:multiply}
+.logo-group .logo-stanford{width:190px;height:120px}
+.logo-group .logo-mit{width:112px;height:62px}
+.logo-group .logo-harvard{filter:grayscale(1);opacity:.56}
+.logo-group .logo-tuurny{width:160px}
+.logo-group .logo-inxtech{width:180px;filter:brightness(0);opacity:.5}
+.logo-group .logo-with-name{gap:10px;width:210px}
+.logo-with-name img{width:39px;height:44px;filter:grayscale(1);opacity:.6}
+.logo-with-name span{font-size:22px;font-weight:600;line-height:1.05;letter-spacing:-.8px}
+.temporary-wordmark{font-size:29px;font-weight:600;letter-spacing:-1.1px;white-space:nowrap}
+.ultra-wordmark{font-size:25px;letter-spacing:-.9px}
+@media(max-width:600px){.logo-group .logo-ultra{width:205px}.ultra-word b{font-size:22px}.logo-ultra img{width:40px;height:40px}.logo-group .logo-residency{width:205px}.logo-residency span{font-size:24px}.logo-residency img{width:26px;height:34px}.community-logos{padding:24px 0 25px}.logo-group{gap:40px;padding-right:40px}.logo-group li{width:155px;height:88px}.logo-group img{max-width:155px}.logo-group .logo-with-name{width:195px}.logo-group .logo-stanford{height:104px}.temporary-wordmark{font-size:25px}.ultra-wordmark{font-size:22px}.logo-window{mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)}}
+@media(prefers-reduced-motion:reduce){.logo-window{mask-image:none}.logo-group{flex-wrap:wrap;justify-content:center;gap:16px 32px;width:100%;padding:0 20px}.logo-group[aria-hidden]{display:none}}
+.logo-with-name img[src$="researchcommons.svg"]{filter:brightness(0);opacity:.5}
+/* Ultra Cognition, as on their site header: the triangle-and-dot mark, then ULTRA wide-spaced over a small COGNITION. */
+.logo-group .logo-ultra{width:230px;gap:12px}
+.logo-ultra img{width:46px;height:46px;opacity:.55}
+.ultra-word{display:flex;flex-direction:column;align-items:flex-start;line-height:1;color:#5c6261}
+.ultra-word b{font-weight:500;font-size:26px;letter-spacing:.32em;margin-right:-.32em}
+.ultra-word small{font-size:9.5px;letter-spacing:.34em;margin:5px 0 0 .1em;font-weight:500}
+/* The Residency, as on their site header: the wing mark then the name on one line in a serif. */
+.logo-group .logo-residency{width:240px;gap:9px}
+.logo-residency img{width:30px;height:39px;filter:brightness(0);opacity:.55}
+.logo-residency span{font-family:"Bree Serif",serif;font-size:28px;font-weight:400;letter-spacing:-.4px;white-space:nowrap;color:#5c6261}
+
+.logo-group a{display:flex;align-items:center;justify-content:center;gap:inherit;width:100%;height:100%;border-radius:4px}
+.logo-group a:focus-visible{outline-offset:-2px}
+
+/* Homepage, October 2026: a still row of marks in one ink tone under a plain
+   label, instead of the endless grey marquee. Each mark is sized by eye to the
+   same visual weight rather than boxed to one size. Nothing in it moves on
+   its own; the marquee and its script are gone. */
+.community-logos { padding: 40px 0 8px; }
+.community-label { margin: 0 0 20px; text-align: center; font: 600 12px/1 "DM Sans", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--w-ink-3, #56636a); }
+.logo-window { width: min(1080px, calc(100% - 48px)); margin: 0 auto; mask-image: none; -webkit-mask-image: none; }
+.logo-track { width: 100%; }
+.logo-group { width: 100%; flex-wrap: wrap; justify-content: center; align-items: center; gap: 18px 44px; padding: 0; }
+.logo-group li, .logo-group .logo-with-name, .logo-group .logo-ultra, .logo-group .logo-residency { width: auto; height: 44px; color: var(--w-ink-2, #3d494f); }
+.logo-group a { gap: 8px; }
+.logo-group img, .logo-group .logo-harvard { display: block; width: auto; height: 26px; max-width: none; object-fit: contain; filter: grayscale(1) brightness(.35); opacity: .78; mix-blend-mode: multiply; }
+.logo-group .logo-stanford { height: 50px; }
+.logo-group .logo-waterloo { height: 38px; }
+.logo-group .logo-mit { height: 24px; }
+.logo-group .logo-harvard { height: 38px; }
+.logo-group .logo-cambridge, .logo-group .logo-right-side { height: 25px; }
+.logo-group .logo-inxtech { height: 30px; filter: brightness(0); opacity: .7; }
+.logo-with-name img { height: 26px; }
+.logo-with-name img[src$="researchcommons.svg"], .logo-residency img { filter: brightness(0); opacity: .62; }
+.logo-with-name span { font-size: 15px; line-height: 1.1; letter-spacing: -.3px; }
+.temporary-wordmark { font-size: 19px; letter-spacing: -.6px; }
+.logo-ultra img { height: 24px; }
+.ultra-word { color: var(--w-ink-2, #5c6261); }
+.ultra-word b { font-size: 17px; }
+.ultra-word small { font-size: 7.5px; }
+.logo-residency img { height: 24px; }
+.logo-residency span { font-size: 19px; color: var(--w-ink-2, #5c6261); }
+@media (max-width: 600px) {
+  /* On phones the marks sit on one line you can swipe, so the strip stays one row tall. Nothing moves on its own. */
+  .community-logos { padding: 28px 0 0; }
+  .logo-window { width: 100%; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+  .logo-window::-webkit-scrollbar { display: none; }
+  .logo-track { width: max-content; }
+  .logo-group { width: max-content; flex-wrap: nowrap; justify-content: flex-start; padding: 0 24px; gap: 10px 26px; }
+  .logo-group li, .logo-group .logo-with-name, .logo-group .logo-ultra, .logo-group .logo-residency { height: 44px; }
+  .logo-group img, .logo-group .logo-harvard { height: 20px; }
+  .logo-group .logo-stanford { height: 38px; }
+  .logo-group .logo-waterloo, .logo-group .logo-harvard { height: 30px; }
+  .logo-group .logo-inxtech { height: 23px; }
+  .logo-with-name span { font-size: 12.5px; }
+  .temporary-wordmark { font-size: 15px; }
+  .ultra-word b { font-size: 14px; }
+  .logo-residency span { font-size: 15px; }
+}

@@ -1,0 +1,14 @@
+Fonts for the app windows on the home page (windows.css).
+Each is a Latin subset (U+0020-007E, U+00A0-00FF and common punctuation) made
+with fontTools and saved as WOFF2.
+
+GoogleSansFlex-Latin.woff2
+  Google Sans Flex from https://github.com/google/fonts/tree/main/ofl/googlesansflex ,
+  instanced at ROND 0, slnt 0, wdth 100, opsz 14, keeping weights 400 to 700.
+  License: OFL-GoogleSansFlex.txt (no Reserved Font Name); trademarks:
+  TRADEMARKS-GoogleSansFlex.md.
+
+Roboto-Latin.woff2
+  Roboto from https://github.com/google/fonts/tree/main/ofl/roboto , instanced
+  at wdth 100, keeping weights 400 to 700. License: OFL-Roboto.txt (no Reserved
+  Font Name).

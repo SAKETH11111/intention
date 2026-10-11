@@ -1,0 +1,56 @@
+.waitlist[hidden] { display:none; }
+/* The host sizes the form (container queries below), so it takes the width it is given even inside a centred flex column. */
+.waitlist { width:100%; container-type:inline-size; margin-top:28px; padding-top:24px; border-top:1px solid var(--w-line); color:var(--w-ink); font-family:"DM Sans",sans-serif; text-align:left; }
+.waitlist h3 { display:flex; align-items:baseline; gap:10px; font-family:"Bree Serif",serif; font-size:24px; font-weight:400; line-height:1.3; margin:0 0 12px; }
+.waitlist p { font-size:15px; line-height:1.5; margin:12px 0; }
+.waitlist label { display:block; font-size:15px; line-height:1.5; margin:16px 0; }
+/* Fields are wells in the sheet: a half-point edge that rises to full ink on focus, and the sky ring for the keyboard. */
+.waitlist input, .waitlist select { display:block; width:100%; min-height:44px; box-sizing:border-box; font:inherit; margin-top:6px; padding:10px 12px; border:.5px solid var(--w-line); border-radius:7px; background:var(--w-well); color:var(--w-ink); }
+.waitlist input:focus, .waitlist select:focus { border-color:var(--w-ink); }
+.waitlist input:focus-visible, .waitlist select:focus-visible, .waitlist a:focus-visible { outline:2px solid var(--w-ring); outline-offset:3px; }
+.waitlist input::placeholder { color:var(--w-ink-3); opacity:1; }
+/* The picker draws its own chevron in the site's pen, at 42 percent ink, so Safari draws no popup button of its own. */
+.waitlist select { -webkit-appearance:none; appearance:none; padding-right:40px; background:var(--w-well) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 8'%3E%3Cpath d='M1.4 1.5 C 3.3 3.2 5.1 4.8 7 6.4 C 8.9 4.8 10.7 3.2 12.6 1.4' fill='none' stroke='rgba(32,42,46,.42)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center / 14px 8px; }
+.waitlist .seat-btn { min-width:44px; min-height:44px; margin-top:4px; }
+.waitlist a { display:inline-flex; align-items:center; min-height:44px; text-decoration:underline; }
+.waitlist-trap { position:absolute; left:-10000px; width:1px; height:1px; overflow:hidden; }
+
+/* The first screen keeps the email well and action together in a wide host. */
+.waitlist form { display:grid; grid-template-columns:minmax(0, 1fr); }
+.waitlist form > label { margin:0; }
+.waitlist .waitlist-email input { margin-top:0; }
+.waitlist [role=status] { grid-column:1 / -1; margin:10px 0 0; }
+.waitlist [role=status]:empty { margin:0; }
+@container (min-width:600px) {
+  .waitlist form { grid-template-columns:minmax(240px, 1fr) auto; column-gap:24px; align-items:center; max-width:720px; }
+  .waitlist .waitlist-email { grid-area:1 / 1; }
+  .home .waitlist form:not(.waitlist-followup) .cta { grid-area:1 / 2; }
+}
+
+/* In the hero (#31's mount) the form follows the film directly, with no rule line above it, centred under the centred hero. */
+.hero .waitlist { margin-top:0; padding-top:0; border-top:0; text-align:center; }
+.hero .waitlist form { margin-inline:auto; text-align:left; }
+
+/* The submit is the ink call to action (product/parts/cta.css), a size below Reserve early access. */
+.home .waitlist .cta { justify-self:start; margin:12px 0 0 -6px; border:0; background:none; -webkit-appearance:none; appearance:none; font-size:26px; white-space:nowrap; }
+@container (min-width:600px) { .home .waitlist .cta { margin:0 0 0 -6px; } }
+/* Sending: the label at 70 percent ink with no rule or arrow, and "Joining…" in the status line. */
+.home .waitlist .cta:disabled { cursor:progress; color:var(--w-ink-3); }
+.home .waitlist .cta:disabled .cta-rule, .home .waitlist .cta:disabled .cta-go { visibility:hidden; }
+@media (max-width:600px) { .home .waitlist .cta { margin-left:-2px; font-size:24px; } }
+
+/* Optional answers stay in a single column. The status line reserves its
+   height before saving, so nothing under it moves as acknowledgement arrives. */
+.home .waitlist .waitlist-followup { grid-template-columns:minmax(0, 1fr); gap:16px; margin-top:24px; max-width:440px; text-align:left; }
+.home .waitlist .waitlist-followup .cta { grid-area:auto; font-size:22px; margin:0 0 0 -6px; }
+.home .waitlist .waitlist-followup :is(input, select, .cta):disabled { opacity:.7; color:var(--w-ink); -webkit-text-fill-color:var(--w-ink); }
+.waitlist .waitlist-followup :is(input, select):disabled { background-color:var(--w-well); border-color:var(--w-line); }
+.waitlist .waitlist-followup [role=status] { min-height:23px; margin:0; color:var(--w-ink-3); }
+.waitlist .waitlist-followup > p { margin:0; }
+.waitlist .waitlist-followup input, .waitlist .waitlist-followup select { margin-top:6px; }
+
+/* Success: the meadow check (product.css) draws once before the place. */
+.waitlist h3 .hand-check { width:20px; height:17px; }
+.waitlist h3 .hand-check path { animation:waitlist-check 180ms cubic-bezier(.2,.8,.2,1) both; }
+@keyframes waitlist-check { from { stroke-dashoffset:1; } to { stroke-dashoffset:0; } }
+@media (prefers-reduced-motion: reduce) { .waitlist h3 .hand-check path { animation:none; } }

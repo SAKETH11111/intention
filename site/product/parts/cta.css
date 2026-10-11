@@ -1,0 +1,66 @@
+/* The homepage's calls to action, in ink: the
+   label in the brand's own hand, a hand-drawn rule under it and a small drawn
+   arrow beside it. A bare Own Hand label reads as a heading, so the rule and
+   the arrow always come with it, and hover visibly moves: the rule redraws
+   and the arrow nudges. The pen is 1.8 with round caps; each mark draws in
+   180 ms, once as it arrives and again on hover. app.js toggles .is-drawn;
+   day.js draws the rule's path. */
+
+.home .cta {
+  position: relative; display: inline-flex; align-items: center; gap: 14px; max-width: 100%; box-sizing: border-box;
+  width: auto; min-width: 0; height: auto; min-height: 0; padding: 8px 6px 14px; border-radius: 6px;
+  font: 400 36px/1 "Intention Own Hand", "Bree Serif", serif; letter-spacing: 0; color: var(--w-ink);
+  text-decoration: none; cursor: pointer;
+}
+.home .cta[aria-disabled="true"] { cursor: default; }
+.home .cta:active { transform: translateY(1px); }
+.home .cta:focus-visible { outline: 2px solid var(--w-ring); outline-offset: 6px; }
+.cta-label { position: relative; }
+.cta .cta-rule { left: -4px; bottom: -10px; width: calc(100% + 8px); height: 8px; }
+.cta .cta-rule path { stroke-width: 1.8; transition: stroke-dashoffset 180ms cubic-bezier(.45,.1,.3,1); }
+.cta-go { display: block; width: 26px; height: 16px; overflow: visible; transition: transform 260ms cubic-bezier(.3,1.45,.6,1); }
+.cta:hover .cta-go { transform: translateX(5px); }
+.cta-go path { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 2; stroke-dashoffset: 1.05; }
+.cta-go path:first-child { transition: stroke-dashoffset 120ms cubic-bezier(.45,.1,.3,1); }
+.cta-go path:last-child { transition: stroke-dashoffset 60ms cubic-bezier(.2,.8,.2,1) 120ms; }
+.join-copy .cta { margin-left: -6px; font-size: 34px; }
+
+/* The hero's arrow down to the moment: no box, just the drawn arrow, the stroke and then the head. */
+.home .scroll-link.draw-arrow { position: relative; z-index: 1; display: block; left: calc(50% - 22px); width: 44px; height: 60px; margin-top: 4px; border-radius: 8px; color: var(--w-ink); }
+.draw-arrow svg { display: block; width: 40px; height: 56px; margin: 2px; overflow: visible; }
+/* Drawn inside the link: on short screens the link meets the hero's clipped foot. */
+.draw-arrow:focus-visible { outline: 2px solid var(--w-ring); outline-offset: -2px; }
+.draw-arrow path { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 2; stroke-dashoffset: 1.05; }
+.draw-arrow .ar-shaft { transition: stroke-dashoffset 120ms cubic-bezier(.45,.1,.3,1); }
+.draw-arrow .ar-head { transition: stroke-dashoffset 60ms cubic-bezier(.2,.8,.2,1) 120ms; }
+.draw-arrow.is-drawn path { stroke-dashoffset: 0; }
+
+.cta-note { margin: 0; font: 500 14px/1.3 "DM Sans", sans-serif; letter-spacing: 0; color: var(--w-ink-3); }
+
+.cta.is-drawn path { stroke-dashoffset: 0; }
+/* Until app.js takes over (and if it never does), every mark is simply there.
+   The rule ships a plain path that day.js redraws in the brand's hand. */
+:root:not(.marks-draw) .draw-arrow path, :root:not(.marks-draw) .cta path { stroke-dashoffset: 0; }
+.cta-rule path { vector-effect: non-scaling-stroke; }
+.no-ease, .no-ease path { transition: none !important; }
+
+/* On phones the label shrinks with the width it has (the viewport less its
+   margins, the arrow and the padding) to stay on one line, down to 21 px;
+   below that it wraps rather than shrink further. */
+@media (max-width: 600px) {
+  .home .cta { gap: 8px; min-height: 44px; padding: 6px 2px 12px; font-size: max(21px, min(31px, calc((100vw - 88px) / 8.8))); }
+  .join-copy .cta { margin-left: -2px; font-size: max(21px, min(31px, calc((100vw - 118px) / 11.2))); }
+}
+/* On day phones the hero's button and caption land on the painted lake and,
+   on short screens, beside the stone; a soft halo of paper keeps them legible
+   without a box, and the caption takes the 76% ink. */
+@media (max-width: 600px) {
+  :root .hero .cta-note { color: var(--w-ink-2); }
+  :root .hero .cta, :root .hero .cta-note { text-shadow: 0 0 2px rgba(249,250,247,.9), 0 0 10px rgba(249,250,247,.9); }
+  :root .hero .cta-note { text-shadow: 0 0 1px rgba(249,250,247,.95), 0 0 2px rgba(249,250,247,.9), 0 0 10px rgba(249,250,247,.9); }
+  :root .hero .cta svg, :root .hero .draw-arrow svg { filter: drop-shadow(0 0 2px rgba(249,250,247,.95)) drop-shadow(0 0 5px rgba(249,250,247,.7)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cta path, .cta, .cta-go, .draw-arrow path { transition: none !important; }
+  .cta:hover .cta-go, .home .cta:active { transform: none; }
+}

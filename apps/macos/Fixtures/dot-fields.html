@@ -1,0 +1,230 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Intention dot fields</title>
+<!--
+  Synthetic fields for the dot matrix (apps/macos/scripts/dot-matrix.sh).
+  Every caret is green, so a screenshot can find it independently of
+  Intention. Query parameters choose the case:
+    ?focus=<field id>        focus that field when the page loads
+    &by=tab                  focus the button before it instead, so a Tab
+                             lands in the field
+    &overlay=mention|dialog|tooltip|menu|roleless|roleless-inside|none
+                             draw that overlay over the caret of the field
+    &dark=1                  a dark page with light text
+    &text=1                  put a word in the field before the caret
+  A host that loads the file by path can bake the same query into
+  <meta name="intention-case" content="focus=gmail&overlay=none"> instead.
+  The window's title carries a receipt the runner reads through
+  Accessibility: the case, how many keys the field saw, its length and the
+  caret's offset. No account, network or personal text is involved.
+-->
+<style>
+  body { margin: 20px 24px; font: 15px/1.5 -apple-system, Helvetica, Arial, sans-serif; background: #f3f3f3; color: #202124; }
+  body.dark { background: #1c1c1e; color: #e6e6e6; }
+  h1 { font: 600 13px/1 sans-serif; margin: 0 0 14px; color: #666; }
+  section { margin: 0 0 14px; }
+  h2 { font: 600 11px/1 sans-serif; color: #888; margin: 0 0 4px; text-transform: uppercase; letter-spacing: .04em; }
+  .before { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+  .f, input, textarea { box-sizing: border-box; display: block; width: 560px; font: 15px/22px Arial, sans-serif; color: #202124;
+    background: #fff; border: 1px solid #c6c6c6; border-radius: 6px; padding: 10px 12px; caret-color: #00c000; outline: none; margin: 0; }
+  .dark .f, .dark input, .dark textarea { background: #2a2a2d; color: #f0f0f0; border-color: #555; }
+  textarea { height: 64px; resize: none; }
+  .f { min-height: 64px; white-space: pre-wrap; }
+  .f p { margin: 0; }
+  .f:empty::before, #ce-before:empty::before { content: attr(data-placeholder); color: #80868b; pointer-events: none; }
+  .f[data-placeholder=""]:empty::before { content: none; }
+  .row { display: flex; gap: 12px; }
+  .row > * { flex: 1; }
+  /* Gmail-like compose body. The hint sits inside the editable body as its
+     first child, drawn at the caret, as Chromium exposed Gmail's. */
+  .compose { width: 560px; border: 1px solid #c6c6c6; border-radius: 8px; background: #fff; padding: 8px 0 0; }
+  .dark .compose { background: #2a2a2d; border-color: #555; }
+  .compose .hdr { padding: 0 16px 6px; font-size: 14px; color: #5f6368; border-bottom: 1px solid #eee; }
+  .compose .wrap { position: relative; padding: 10px 16px 16px; }
+  .body { position: relative; min-height: 120px; font: 13px/1.5 Arial, sans-serif; color: #222; outline: none; caret-color: #00c000; }
+  .dark .body { color: #eee; }
+  .gemini { position: absolute; left: 0; top: 0; color: #5f6368; font: 16px/23px "Google Sans", Arial, sans-serif; pointer-events: none;
+    user-select: none; white-space: nowrap; }
+  .gemini .key { display: inline-block; min-width: 14px; padding: 0 5px; margin: 0 2px; border: 1px solid #dadce0; border-radius: 4px;
+    background: #f1f3f4; color: #3c4043; font: 13px/19px Arial, sans-serif; text-align: center; vertical-align: 1px; }
+  .dark .gemini { color: #9aa0a6; } .dark .gemini .key { background: #3c3c40; border-color: #555; color: #e8eaed; }
+  /* Ghost text, as Smart Compose draws it after the caret. */
+  .ghost { color: #9aa0a6; }
+  /* Overlays. */
+  .overlay { display: none; position: absolute; z-index: 5; box-sizing: border-box; background: #fff; color: #202124;
+    border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.18); font: 14px/20px Arial, sans-serif; }
+  .overlay.on { display: block; }
+  .mention, .menu { width: 260px; padding: 6px 0; }
+  .mention div, .menu div { padding: 6px 14px; }
+  .mention div[aria-selected="true"], .menu div:first-child { background: #eef; }
+  .tooltip { padding: 6px 10px; background: #333; color: #fff; border: 0; font-size: 12px; }
+  .dialog { width: 360px; padding: 18px; }
+  .roleless { width: 300px; height: 120px; padding: 10px 14px; }
+  .anchor { position: relative; }
+  ul { margin: 0; padding-left: 24px; }
+</style>
+<body>
+<h1 id="h">Intention dot fields</h1>
+
+<section><h2>Gmail-like compose, hint inside the body</h2>
+<button class="before" id="before-gmail">before gmail</button>
+<div class="compose" id="compose-gmail">
+  <div class="hdr">To &nbsp;<span style="color:#202124">someone</span></div>
+  <div class="wrap">
+    <div class="body" id="gmail" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Message Body"><div class="gemini" contenteditable="false">Press <span class="key">/</span> to write using your Gmail &amp; Drive</div><br></div>
+  </div>
+</div></section>
+
+<section><h2>Gmail-like compose, hint beside the body</h2>
+<button class="before" id="before-gmail-sibling">before gmail sibling</button>
+<div class="compose" id="compose-gmail-sibling">
+  <div class="hdr">To &nbsp;<span style="color:#202124">someone</span></div>
+  <div class="wrap">
+    <div class="gemini" style="left:16px;top:10px" id="gemini-sibling">Press <span class="key">/</span> to write using your Gmail &amp; Drive</div>
+    <div class="body" id="gmail-sibling" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Message Body"><br></div>
+  </div>
+</div></section>
+
+<section><h2>Text area and input with a placeholder</h2>
+<div class="row">
+  <div><button class="before" id="before-textarea-ph">b</button><textarea id="textarea-ph" placeholder="Write something"></textarea></div>
+  <div><button class="before" id="before-input-ph">b</button><input id="input-ph" placeholder="Search"></div>
+</div></section>
+
+<section><h2>Text area and input without a placeholder</h2>
+<div class="row">
+  <div><button class="before" id="before-textarea-bare">b</button><textarea id="textarea-bare"></textarea></div>
+  <div><button class="before" id="before-input-bare">b</button><input id="input-bare" type="text"></div>
+</div></section>
+
+<section><h2>Editors: a placeholder before, a bare div, a line break, a paragraph</h2>
+<div class="row">
+  <div><button class="before" id="before-ce-before">b</button><div class="f" id="ce-before" contenteditable="true" role="textbox" data-placeholder="Synthetic placeholder"></div></div>
+  <div><button class="before" id="before-ce-bare">b</button><div class="f" id="ce-bare" contenteditable="true" role="textbox" data-placeholder=""></div></div>
+</div>
+<div class="row" style="margin-top:12px">
+  <div><button class="before" id="before-ce-br">b</button><div class="f" id="ce-br" contenteditable="true" role="textbox" data-placeholder=""><br></div></div>
+  <div><button class="before" id="before-ce-p">b</button><div class="f" id="ce-p" contenteditable="true" role="textbox" data-placeholder=""><p><br></p></div></div>
+</div></section>
+
+<section><h2>Ghost text after the caret, and a bulleted list</h2>
+<div class="row">
+  <div><button class="before" id="before-ce-ghost">b</button><div class="f" id="ce-ghost" contenteditable="true" role="textbox" data-placeholder="">Thanks for<span class="ghost" contenteditable="false"> the quick reply</span></div></div>
+  <div><button class="before" id="before-ce-list">b</button><div class="f" id="ce-list" contenteditable="true" role="textbox" data-placeholder=""><p>Items</p><ul><li>one</li><li>two</li></ul></div></div>
+</div></section>
+
+<section><h2>A field inside an iframe, and one inside a shadow root</h2>
+<div class="row">
+  <div><button class="before" id="before-iframe">b</button><iframe id="iframe" title="Synthetic frame" style="width:100%;height:84px;border:0;background:transparent" srcdoc="&lt;style&gt;body{margin:0}textarea{box-sizing:border-box;width:100%;height:64px;font:15px/22px Arial,sans-serif;color:#202124;background:#fff;border:1px solid #c6c6c6;border-radius:6px;padding:10px 12px;caret-color:#00c000;outline:none;resize:none;margin:0}&lt;/style&gt;&lt;textarea id='framed' placeholder='Inside a frame'&gt;&lt;/textarea&gt;"></iframe></div>
+  <div><button class="before" id="before-shadow">b</button><intention-shadow-field id="shadow"></intention-shadow-field></div>
+</div></section>
+
+<section><h2>Overlays over the caret</h2>
+<button class="before" id="before-ce-overlay">b</button>
+<div class="anchor">
+  <div class="f" id="ce-overlay" contenteditable="true" role="textbox" data-placeholder="">Hello<div class="overlay roleless" id="ov-roleless-inside" contenteditable="false">A suggestion box with no role, inside the editor, over the caret.</div></div>
+  <div class="overlay mention" id="ov-mention" role="listbox" aria-label="People"><div role="option" aria-selected="true">Ada Lovelace</div><div role="option">Alan Turing</div><div role="option">Grace Hopper</div></div>
+  <div class="overlay menu" id="ov-menu" role="menu"><div role="menuitem">Bold</div><div role="menuitem">Italic</div><div role="menuitem">Link</div></div>
+  <div class="overlay tooltip" id="ov-tooltip" role="tooltip">Add a link</div>
+  <div class="overlay dialog" id="ov-dialog" role="dialog" aria-label="Discard draft?"><b>Discard draft?</b><p>This cannot be undone.</p><button>Cancel</button> <button>Discard</button></div>
+  <div class="overlay roleless" id="ov-roleless">A suggestion box with no role, over the caret and reaching below the field.</div>
+</div>
+<p style="font-size:12px;color:#888;margin:6px 0 0">The role-less box drawn inside the editor itself (overlay=roleless-inside) is a known limit: inside the field only a covering role hides the dot.</p>
+</section>
+
+<script>
+(() => {
+  // A host that cannot pass a query, such as a file loaded by path, bakes
+  // the case into a meta tag instead.
+  const baked = document.querySelector('meta[name="intention-case"]');
+  const q = new URLSearchParams(location.search.length > 1 ? location.search : (baked ? baked.content : ''));
+  if (q.get('dark') === '1') document.body.classList.add('dark');
+  const id = q.get('focus') || 'gmail';
+  // The shadow field: an editor inside a shadow root, as web components keep theirs.
+  customElements.define('intention-shadow-field', class extends HTMLElement {
+    connectedCallback() {
+      const root = this.attachShadow({ mode: 'open' });
+      root.innerHTML = '<style>div{box-sizing:border-box;width:100%;min-height:64px;font:15px/22px Arial,sans-serif;color:#202124;background:#fff;border:1px solid #c6c6c6;border-radius:6px;padding:10px 12px;caret-color:#00c000;outline:none;white-space:pre-wrap}div:empty::before{content:"Inside a shadow root";color:#80868b}</style><div id="inner" contenteditable="true" role="textbox"></div>';
+    }
+  });
+  const field = id === 'iframe' ? null : id === 'shadow' ? document.getElementById('shadow').shadowRoot.getElementById('inner') : document.getElementById(id);
+  if (id === 'iframe') {
+    const frame = document.getElementById('iframe');
+    const go = () => { const t = frame.contentDocument && frame.contentDocument.getElementById('framed'); if (!t) return;
+      if (q.get('text') === '1') t.value = 'Hi ';
+      if (q.get('by') === 'tab') document.getElementById('before-iframe').focus(); else { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+      const receipt = () => { document.title = 'Intention dot fields case=iframe overlay=none keys=0 length=' + t.value.length + ' caret=' + t.selectionStart + ' focused=' + (frame.contentDocument.activeElement === t ? 1 : 0); };
+      t.addEventListener('input', receipt); t.addEventListener('focus', receipt); frame.contentDocument.addEventListener('selectionchange', receipt); receipt(); };
+    frame.scrollIntoView({ block: 'center' });
+    if (frame.contentDocument && frame.contentDocument.readyState === 'complete' && frame.contentDocument.getElementById('framed')) go(); else frame.addEventListener('load', go);
+  }
+  const overlay = q.get('overlay') || 'none';
+  if (q.get('text') === '1' && field) {
+    if (field.isContentEditable) { if (id.startsWith('gmail')) field.insertAdjacentText('afterbegin', 'Hi '); else field.textContent = 'Hi '; }
+    else field.value = 'Hi ';
+  }
+  // Where the caret goes: before the ghost text, at the end of the list's
+  // last item, after a word, else at the start.
+  const placeCaret = () => {
+    if (!field || !field.isContentEditable) return;
+    const sel = getSelection(); const r = document.createRange();
+    if (id === 'ce-ghost') { const t = field.firstChild; r.setStart(t, t.length); }
+    else if (id === 'ce-list') { const li = field.querySelector('li:last-child'); r.setStart(li.firstChild, li.firstChild.length); }
+    else if (id === 'ce-overlay') { const t = field.firstChild; r.setStart(t, t.length); }
+    else if (q.get('text') === '1') { const t = field.firstChild; r.setStart(t, t.length); }
+    else r.setStart(field, 0);
+    r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+  };
+  const showOverlay = () => {
+    document.querySelectorAll('.overlay').forEach(o => o.classList.remove('on'));
+    if (overlay === 'none') return;
+    const box = document.getElementById('ov-' + overlay); if (!box) return;
+    const f = document.getElementById('ce-overlay');
+    const sel = getSelection(); let rect = null;
+    if (sel.rangeCount && f.contains(sel.anchorNode)) { const rects = sel.getRangeAt(0).getClientRects(); if (rects.length) rect = rects[0]; }
+    const fr = f.getBoundingClientRect(); const ar = f.parentElement.getBoundingClientRect();
+    const cx = rect ? rect.left - ar.left : 12, cy = rect ? rect.top - ar.top : 10;
+    box.classList.add('on');
+    if (overlay === 'mention' || overlay === 'menu') { box.style.left = (cx - 30) + 'px'; box.style.top = (cy - 40) + 'px'; }
+    else if (overlay === 'tooltip') { box.style.left = (cx - 20) + 'px'; box.style.top = (cy - 6) + 'px'; }
+    else if (overlay === 'dialog') { box.style.left = (cx - 60) + 'px'; box.style.top = (cy - 50) + 'px'; }
+    else if (overlay === 'roleless') { box.style.left = (cx - 40) + 'px'; box.style.top = (cy - 10) + 'px'; }
+    else if (overlay === 'roleless-inside') { box.style.left = (cx - 40 - (fr.left - ar.left)) + 'px'; box.style.top = (cy - 40 - (fr.top - ar.top)) + 'px'; }
+  };
+  let keys = 0;
+  const caretOffset = () => {
+    if (!field) return -1;
+    if (!field.isContentEditable) return field.selectionStart;
+    const sel = getSelection(); if (!sel.rangeCount || !field.contains(sel.anchorNode)) return -1;
+    const r = document.createRange(); r.selectNodeContents(field); r.setEnd(sel.anchorNode, sel.anchorOffset); return r.toString().length;
+  };
+  // The caret's own rectangle from the page's layout, in viewport points,
+  // for a check that needs neither Intention nor pixels; empty when the
+  // selection has no rectangle, as in an empty editor or a plain input.
+  const caretRect = () => {
+    if (!field || !field.isContentEditable) return '';
+    const sel = getSelection(); if (!sel.rangeCount || !field.contains(sel.anchorNode)) return '';
+    const rects = sel.getRangeAt(0).getClientRects(); if (!rects.length) return '';
+    const b = rects[0]; return b.left.toFixed(1) + ',' + b.top.toFixed(1) + ',' + b.width.toFixed(1) + ',' + b.height.toFixed(1);
+  };
+  const receipt = () => {
+    if (!field) return;
+    const text = field.isContentEditable ? field.textContent : field.value;
+    const own = id.startsWith('gmail') ? text.replace('Press / to write using your Gmail & Drive', '') : id === 'ce-ghost' ? text.replace(' the quick reply', '') : id === 'ce-overlay' ? text.replace('A suggestion box with no role, inside the editor, over the caret.', '') : text;
+    document.title = 'Intention dot fields case=' + id + ' overlay=' + overlay + ' keys=' + keys + ' length=' + own.length + ' caret=' + caretOffset() + ' rect=' + caretRect() + ' focused=' + ((document.activeElement === field || (field.getRootNode() !== document && field.getRootNode().activeElement === field)) ? 1 : 0);
+  };
+  if (field) {
+    field.addEventListener('keydown', () => { keys++; receipt(); });
+    field.addEventListener('keyup', receipt); field.addEventListener('input', receipt);
+    field.addEventListener('focus', () => { placeCaret(); showOverlay(); receipt(); });
+    // A small window shows the field itself, with room above it for the dot.
+    (id === 'shadow' ? document.getElementById('shadow') : field).scrollIntoView({ block: 'center' });
+  }
+  document.addEventListener('selectionchange', receipt);
+  new MutationObserver(receipt).observe(document.body, { childList: true, subtree: true, characterData: true });
+  if (q.get('by') === 'tab') { const b = document.getElementById('before-' + id); if (b) b.focus(); }
+  else if (field) { field.focus(); placeCaret(); }
+  showOverlay(); receipt();
+})();
+</script>
+</body>

@@ -1,0 +1,29 @@
+/* The homepage's paper world: a desk with paper sheets on it, so every edge reads. The night
+   the page scrolls into keeps its own tokens (day.css). */
+:root {
+  --w-ground: #EEEBE1; --w-sheet: #F9FAF7; --w-well: #E4E1D6;
+  --w-ink: #202A2E; --w-ink-2: rgba(32,42,46,.76); --w-ink-3: rgba(32,42,46,.70);
+  --w-hair: rgba(32,42,46,.14); --w-line: rgba(32,42,46,.26); --w-edge: rgba(32,42,46,.46);
+  --w-action: #202A2E; --w-action-text: #F9FAF7; --w-action-hover: #2C3A40; --w-action-seat: rgba(32,42,46,.42);
+  --w-paper-btn: #F9FAF7; --w-paper-btn-hover: #F1F1EB; --w-paper-seat: rgba(32,42,46,.30);
+  --w-ring: #3F7AA5;
+  --w-float: 0 0 0 .5px rgba(32,42,46,.22), 0 2px 2px -1px rgba(32,42,46,.08), 0 12px 24px -12px rgba(32,42,46,.35);
+  --focus: var(--w-ring);
+}
+.home body { background: var(--w-ground); color: var(--w-ink); }
+/* stroke: none, because styles.css strokes every svg; the approved letterforms are fills only. */
+.wordmark { aspect-ratio: 1657 / 276; color: #202A2E; stroke: none; }
+.hero .wordmark { position: relative; left: 50%; width: min(151.88%, calc(100vw - 32px)); translate: -50% 0; }
+/* The painting runs to the foot of the screen and softens into the desk over
+   its last few pixels, so there is no band or seam between it and the logos. */
+/* The hero's words, button and demo sit above the fade, for short screens
+   where they reach down into it. */
+.home .hero-content { z-index: 1; }
+.home .hero::after { height: 96px; background: linear-gradient(#eeebe100 0, #eeebe12e 40%, #eeebe199 75%, var(--w-ground)); }
+.community-logos { background: var(--w-ground); }
+.offer-copy p { color: var(--w-ink-2); }
+.examples-footer { border-top-color: var(--w-hair); color: var(--w-ink-3); }
+.back-to-top { color: var(--w-ink-3); }
+
+/* A painting that failed to load stays hidden (app.js), so the sky shows rather than a broken-image mark. */
+.hero .landscape.is-broken { visibility: hidden; }

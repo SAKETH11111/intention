@@ -1,0 +1,16 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "fps": 60,
+  "durationSeconds": 270,
+  "durationInFrames": 16200,
+  "chapters": [
+    {"id":"title","label":"Title and problem","start":0,"end":55},
+    {"id":"messages","label":"Messages","start":55,"end":85},
+    {"id":"slack","label":"Slack","start":85,"end":115},
+    {"id":"gmail","label":"Gmail","start":115,"end":160},
+    {"id":"notes","label":"Notes","start":160,"end":195},
+    {"id":"savings","label":"Time saved","start":195,"end":225},
+    {"id":"ending","label":"Tools and ending","start":225,"end":270}
+  ]
+}
