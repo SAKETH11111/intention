@@ -2,8 +2,7 @@ import AppKit
 
 /// Intention's mark: the listening dot over a caret, drawn as its own
 /// vector here. The dot is a slightly wide oval (a true circle at small
-/// sizes, see `handFrom`) and the stem a rounded caret bar. The type keeps
-/// its name because the panels and tests address it by it.
+/// sizes, see `handFrom`) and the stem a rounded caret bar.
 enum OwnHandMark {
     static let dotPath = "M 62.50 -1.00 C 82.66 -1.00 99.00 14.45 99.00 33.50 C 99.00 52.55 82.66 68.00 62.50 68.00 C 42.34 68.00 26.00 52.55 26.00 33.50 C 26.00 14.45 42.34 -1.00 62.50 -1.00 Z"
     static let stemPath = "M 62.50 92.00 C 62.50 92.00 62.50 92.00 62.50 92.00 C 70.51 92.00 77.00 98.49 77.00 106.50 C 77.00 147.83 77.00 189.17 77.00 230.50 C 77.00 238.51 70.51 245.00 62.50 245.00 C 62.50 245.00 62.50 245.00 62.50 245.00 C 54.49 245.00 48.00 238.51 48.00 230.50 C 48.00 189.17 48.00 147.83 48.00 106.50 C 48.00 98.49 54.49 92.00 62.50 92.00 Z"

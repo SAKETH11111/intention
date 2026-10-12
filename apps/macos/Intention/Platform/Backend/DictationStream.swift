@@ -3,9 +3,8 @@ import Foundation
 /// Where the dictation endpoint is and how a connection proves the person's
 /// account. The address comes from Info.plist's `IntentionProxyURL`, set by the
 /// build setting `INTENTION_PROXY_URL`; the build holds no secret. Each
-/// connection presents a speech grant from `credentials`, which the alpha
-/// backend signs for a signed-in device and which lasts five minutes
-/// (the proxy speech-grant contract).
+/// connection presents a speech grant from `credentials`, which the
+/// backend signs for a signed-in device and which lasts five minutes.
 struct DictationEndpoint: Sendable {
     let url: URL
     let credentials: any SpeechCredentials

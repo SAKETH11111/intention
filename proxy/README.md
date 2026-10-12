@@ -1,15 +1,14 @@
-# Local development proxy
+# Local proxy
 
-Run `npm ci` in this folder, then `npm start`. The service binds only to `127.0.0.1:8787`. The native app uses `http://127.0.0.1:8787` for its API and `ws://127.0.0.1:8787/speech` for speech.
+Use Node.js 22 or later. Copy `.env.example` to the ignored repository-root `.env` and set your HTTPS API URL and WSS speech URL. Both upstream values are empty in the example. Keep credentials in protected local configuration.
 
-Copy `.env.example` to the repository root as `.env` and fill it privately. The checked-in example contains no upstream settings. Protect the root file with `chmod 600 .env`. Never include its contents in logs, reports or commits. `PROXY_ENV_FILE` may instead point to another protected file. `PROXY_TOKEN_KEY` is a random 32-byte base64url value. Changing it expires outstanding speech tokens.
+```sh
+npm ci
+npm start
+```
 
-The proxy requires HTTPS and WSS upstreams. It forwards only the supported API paths and explicit request headers. Mail connection changes, diagnostics uploads and object uploads are disabled. Responses are checked using the private name, aliases, host and term settings. Only `service_name`, `product_name`, `brand_name` and `service` presentation strings are rebranded. If user text, accepted commitments, source identifiers, revisions, unknown fields or JSON keys contain private identifiers, the response fails closed with a generic error. Unsafe WebSocket content closes the stream without forwarding altered text. Signed documents and encoded credentials are checked without changing their signed content. Upstream URLs are mapped only when their resource path is safe.
+The proxy listens on `127.0.0.1:8787`. HTTP requests go to the configured API base path; WebSocket connections at `/speech` go to the configured speech endpoint. Request and response bodies, including compressed bytes, authorization values and WebSocket messages pass through unchanged. Redirects are returned to the client.
 
-Speech grants up to 512 bytes are encrypted into proxy tokens bounded at 2,048 bytes. The native client must accept that proxy limit. Tokens are bound to the local origin and expiry, then decrypted only before the upstream handshake. Changing the token key invalidates outstanding tokens. Both WebSocket directions enforce a 1 MiB send queue ceiling and close after five seconds without send progress. Binary upstream replies are rejected. Audio bytes are forwarded unchanged; the native app supplies 16 kHz mono Int16 PCM.
+Browser origins must be listed in `ALLOWED_ORIGINS`. Requests from other origins or with a non-local Host header are refused. The proxy forwards only selected HTTP headers, bounds request bodies to 1 MiB and response bodies to 8 MiB, and limits pending WebSocket sends to 1 MiB and 1,024 messages with a five-second progress timeout. Transport failures return fixed errors without logging payloads or credentials.
 
-A single recursive response walk covers unknown field names, nested objects and arrays. Every nonpresentation string and JSON key is inspected as plaintext, independently decoded percent-escape runs, and bounded nested base64url content. Literal percent characters do not prevent valid escapes from being inspected. Excessive encoding depth fails closed. Safe values retain their original bytes. Signed documents are checked for both private content and disabled upload/OAuth/retention capabilities before being returned unchanged; a signed document needing either removal or rewriting is rejected. The same capability definitions govern unsigned filtering and signed rejection.
-
-Set `UPSTREAM_FOOTER_FIELD` to the upstream field inside `compose` that controls the product signature. The adapter removes the client's generic `add_signature` field and forces that upstream field to false. No source-specific field name is embedded in this package.
-
-`npm test` uses synthetic HTTP and WebSocket fixtures. It checks 64-frame audio byte forwarding, realistic signed grants, authorization, expiry, tampering, protected response content, response headers, redirects, disabled routes, send queue limits and malformed upgrade cleanup. It performs no live upstream requests. `/health` reports whether protected configuration is available; it does not authenticate a real device or prove speech service readiness.
+`GET /health` reports whether upstream configuration is valid. Run `npm test` for the synthetic transport checks.

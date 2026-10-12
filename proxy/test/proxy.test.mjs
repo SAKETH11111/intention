@@ -1,266 +1,362 @@
-import {test,before,after} from 'node:test';
+import {test, before, after} from 'node:test';
 import assert from 'node:assert/strict';
 import net from 'node:net';
-import {generateKeyPairSync,sign,createHmac,createHash} from 'node:crypto';
+import http from 'node:http';
+import {gzipSync} from 'node:zlib';
 import {once} from 'node:events';
-import {writeFile} from 'node:fs/promises';
-import {WebSocket,WebSocketServer} from 'ws';
-import {createProxy,createBoundedForwarder} from '../src/server.mjs';
-import {settings,sanitize,cleanText,leaks,opaqueLeaks,sealGrant,openGrant} from '../src/privacy.mjs';
-const env={UPSTREAM_API:'https://api.legacy.example',UPSTREAM_SPEECH:'wss://speech.legacy.example/asr',ORIGINAL_PRODUCT_NAME:'LegacyBrand',ORIGINAL_PRODUCT_ALIASES:'LegacyOrg',PRIVATE_HOSTS:'other.legacy.example',PRIVATE_TERMS:'com.legacy.example',UPSTREAM_FOOTER_FIELD:'add_legacy_footer',PROXY_TOKEN_KEY:Buffer.alloc(32,7).toString('base64url'),ALLOWED_ORIGINS:'https://demo.example'};
-const config=settings(env),captures=[];
-let proxy,fixture,fixturePort,port,mode='identity',forwarded,currentGrant='fixture-grant',nextResponse,nextHeaders={};
-const upstreams=[];let speechFields={};
-const json=(v,status=200,headers={})=>new Response(JSON.stringify(v),{status,headers:{'Content-Type':'application/json',...headers}});
-async function freePort(){const s=net.createServer();s.listen(0,'127.0.0.1');await once(s,'listening');const p=s.address().port;await new Promise(r=>s.close(r));return p;}
-before(async()=>{
- fixture=new WebSocketServer({port:0,host:'127.0.0.1',verifyClient:(_info,done)=>mode==='refused'?done(false,401):done(true)});await once(fixture,'listening');fixturePort=fixture.address().port;
- fixture.on('connection',(ws,req)=>{
-  assert.equal(req.headers.authorization,'Bearer '+currentGrant);let frames=0,bytes=0,retention;const hash=createHash('sha256');
-  if(mode==='paused'){ws.pause();return;}
-  ws.on('message',(data,binary)=>{
-   if(binary){frames++;bytes+=data.length;hash.update(data);return;}
-   const msg=JSON.parse(data);
-   if(msg.type==='start')retention=msg.retention;
-   if(msg.type==='stop'){
-    if(mode==='binary'){ws.send(Buffer.from([1,2,3]));return;}
-    ws.send(JSON.stringify({type:'transcript',text:mode==='unsafe-text'?'I will deliver the LegacyBrand integration on Thursday':'Synthetic speech.',service_name:'LegacyBrand',frames,bytes,retention,audio_hash:hash.digest('hex'),...speechFields}));
-    ws.send(JSON.stringify({type:'text',text:'Synthetic speech.',cleaned:true}));
-   }
+import {WebSocket, WebSocketServer} from 'ws';
+import {createProxy, createBoundedForwarder, requestUpstream, MAX_QUEUED_BYTES, MAX_QUEUED_MESSAGES} from '../src/server.mjs';
+import {settings} from '../src/config.mjs';
+
+const env = {UPSTREAM_API: 'https://api.example/base', UPSTREAM_SPEECH: 'wss://speech.example/stream', ALLOWED_ORIGINS: 'https://client.example'};
+let proxy, fixture, port, forwarded, responseFactory, speechHeaders, speechMode = 'echo';
+const upstreams = [], fixtureConnections = [];
+async function freePort() {
+  const socket = net.createServer(); socket.listen(0, '127.0.0.1'); await once(socket, 'listening');
+  const value = socket.address().port; await new Promise(resolve => socket.close(resolve)); return value;
+}
+before(async () => {
+  fixture = new WebSocketServer({port: 0, host: '127.0.0.1', verifyClient: (_info, done) => speechMode === 'refused' ? done(false, 401) : done(true)});
+  await once(fixture, 'listening');
+  fixture.on('connection', (ws, req) => {
+    fixtureConnections.push(ws);
+    speechHeaders = req.headers;
+    ws.on('message', (data, binary) => ws.send(data, {binary}));
   });
- });
- port=await freePort();
- proxy=createProxy({...env,PROXY_PORT:String(port)},{
-  webSocketFactory:(_url,opts)=>{const ws=new WebSocket(`ws://127.0.0.1:${fixturePort}`,opts);upstreams.push(ws);return ws;},
-  fetchImpl:async(url,opts)=>{
-   forwarded={url:String(url),...opts};
-   if(mode==='custom')return json(nextResponse,200,nextHeaders);
-   if(mode==='redirect')return new Response(null,{status:303,headers:{Location:'https://api.legacy.example/v1/me'}});
-   if(mode==='unsafe-redirect')return new Response(null,{status:303,headers:{Location:'https://outside.example/steal'}});
-   if(mode==='html')return new Response('<html>LegacyBrand https://api.legacy.example/private</html>',{status:500,headers:{'Content-Type':'text/html','Server':'LegacyBrand','Via':'private','X-Provider':'LegacyOrg','Set-Cookie':'s=private'}});
-   if(mode==='error')return json({detail:'LegacyBrand failed',trace:'api.legacy.example'},503,{'Retry-After':'4'});
-   if(mode==='safe-error')return json({detail:'proposal_limit'},409,{'Retry-After':'4'});
-   if(mode==='shown')return new Response(null,{status:204});
-   if(mode==='grant')return json({grant:currentGrant,expires_in:300,speech_url:env.UPSTREAM_SPEECH},201);
-   if(mode==='throw')throw Error('Private LegacyBrand credential');
-   return json({account_id:'00000000-0000-0000-0000-000000000001',device_id:'00000000-0000-0000-0000-000000000002',service_name:'LegacyBrand',nested:{body:'Synthetic body.',text:'Synthetic text.',subject:'Synthetic subject.'},upload_url:'https://other.legacy.example/upload'},200,{'Server':'LegacyBrand','Via':'private','X-Provider':'LegacyOrg','Set-Cookie':'s=private'});
-  }
- });
- proxy.server.listen(port,'127.0.0.1');await once(proxy.server,'listening');
+  port = await freePort();
+  proxy = createProxy({...env, PROXY_PORT: String(port)}, {
+    requestImpl: async (url, options) => {
+      forwarded = {url: String(url), ...options};
+      return responseFactory ? responseFactory() : new Response('ok', {headers: {'Content-Type': 'text/plain'}});
+    },
+    webSocketFactory: (url, options) => {
+      assert.equal(url, env.UPSTREAM_SPEECH);
+      const ws = new WebSocket(`ws://127.0.0.1:${fixture.address().port}`, options.protocols, options);
+      upstreams.push(ws); return ws;
+    }
+  });
+  proxy.server.listen(port, '127.0.0.1'); await once(proxy.server, 'listening');
 });
-after(async()=>{
- for(const client of fixture.clients)client.terminate();for(const client of proxy.wss.clients)client.terminate();
- await new Promise(r=>fixture.close(r));await new Promise(r=>proxy.server.close(r));
+after(async () => {
+  for (const ws of fixture.clients) ws.terminate();
+  for (const ws of proxy.wss.clients) ws.terminate();
+  for (const ws of upstreams) ws.terminate();
+  await new Promise(resolve => fixture.close(resolve));
+  await new Promise(resolve => proxy.server.close(resolve));
 });
-async function request(path,options={}){return fetch(proxy.origin+path,{headers:{Authorization:'Bearer opaque-device','Content-Type':'application/json'},...options,redirect:'manual'});}
-async function capture(response){const x={status:response.status,headers:Object.fromEntries(response.headers),body:await response.text()};captures.push(x);return x;}
-test('HTTP routing preserves prefix, body content and only approved auth headers',async()=>{
- mode='identity';const body={cue:'User input mentioning LegacyBrand',compose:{subject:'Test',add_signature:true}};
- const r=await request('/v1/writing/drafts',{method:'POST',body:JSON.stringify(body),headers:{Authorization:'Bearer opaque-device','Content-Type':'application/json','X-Provider':'private','CF-Connecting-IP':'1.2.3.4',Cookie:'private'}});
- assert.equal(r.status,200);assert.equal(forwarded.url,'https://api.legacy.example/v1/writing/drafts');
- assert.equal(forwarded.headers.authorization,'Bearer opaque-device');assert.equal(forwarded.headers['content-type'],'application/json');assert.ok(!('cookie' in forwarded.headers));assert.ok(!('x-provider' in forwarded.headers));assert.ok(!('cf-connecting-ip' in forwarded.headers));
- assert.deepEqual(JSON.parse(forwarded.body),{cue:body.cue,compose:{subject:'Test',add_legacy_footer:false}});
- const x=await capture(r);assert.ok(!leaks(JSON.stringify(x),config));
- for(const k of Object.keys(x.headers))assert.ok(!/^x-|^(server|via|set-cookie)$/i.test(k));
-});
-test('only explicit presentation metadata is rebranded',()=>{
- const result=sanitize({service_name:'LegacyBrand at api.legacy.example',nested:{product_name:'LegacyOrg'},untouched:'Intention intentional'},config,proxy.origin);
- assert.ok(!leaks(JSON.stringify(result),config));assert.equal(result.service_name,'Intention at [private service]');assert.equal(result.untouched,'Intention intentional');
- for(const field of ['text','transcript','body','subject','message','cue','plain_text','html','edited_draft','source_id','revision','unknown'])assert.throws(()=>sanitize({[field]:'LegacyBrand'},config,proxy.origin));
- assert.throws(()=>sanitize({'%4cegacyBrand':'value'},config,proxy.origin));
- assert.throws(()=>sanitize({device_key:Buffer.from('LegacyBrand').toString('base64url')},config,proxy.origin));
- assert.equal(cleanText('LegacyBrand LegacyBranding Intention',config),'Intention LegacyBranding Intention');assert.equal(cleanText('A%20user%20subject',config),'A%20user%20subject');
-});
-test('redirects are restricted and errors, HTML, cookies stay private',async()=>{
- mode='redirect';let r=await request('/v1/me');assert.equal(r.status,303);assert.equal(r.headers.get('location'),proxy.origin+'/v1/me');await capture(r);
- mode='unsafe-redirect';r=await request('/v1/me');assert.equal(r.status,502);await capture(r);
- for(const m of ['html','error','safe-error','throw']){mode=m;const x=await capture(await request('/v1/me'));assert.ok(!leaks(JSON.stringify(x),config));if(m==='safe-error')assert.equal(JSON.parse(x.body).detail,'proposal_limit');}
-});
-test('disabled routes, queries, arbitrary targets and browser origins never reach upstream',async()=>{
- mode='identity';
- for(const [path,method] of [['/v1/mail/gmail/connect','POST'],['/v1/mail/outlook/complete','POST'],['/v1/mail/gmail/callback','GET'],['/v1/mail/connections/00000000-0000-0000-0000-000000000000','DELETE'],['/v1/retention/events','POST'],['/v1/problem-reports','POST'],['/v1/objects/audio','POST'],['/https://outside.example','GET'],['/v1/me?target=outside','GET']]){
- forwarded=null;const r=await request(path,{method});assert.ok(r.status>=400);assert.equal(forwarded,null);await capture(r);
- }
- const r=await request('/v1/me',{headers:{Origin:'https://outside.example'}});assert.equal(r.status,403);
-});
-test('204 admission remains empty',async()=>{mode='shown';const r=await request('/v1/writing/drafts/00000000-0000-0000-0000-000000000000/shown',{method:'POST',body:'{"revision":1}'});assert.equal(r.status,204);assert.equal(await r.text(),'');});
-test('speech token hides raw and decoded identity, respects expiry and rejects tampering',()=>{
- const grant='v1.'+Buffer.from(JSON.stringify({aud:'LegacyBrand-speech',exp:1700000300})).toString('base64url')+'.opaque';
- const token=sealGrant(grant,300,config,proxy.origin,1700000000000);assert.ok(!opaqueLeaks(token,config));assert.equal(openGrant(token,config,proxy.origin,1700000000000),grant);
- assert.throws(()=>openGrant(token,config,'http://other.example',1700000000000));assert.throws(()=>openGrant(token,config,proxy.origin,1700000301000));assert.throws(()=>openGrant(token.slice(0,-4)+'AAAA',config,proxy.origin,1700000000000));
-});
-test('real WebSocket upgrade forwards binary audio and sanitizes response text',async()=>{
- mode='grant';const grant=await (await request('/v1/speech/grants',{method:'POST'})).json();assert.ok(grant.grant.startsWith('sg1.'));assert.ok(!opaqueLeaks(grant.grant,config));
- const ws=new WebSocket(proxy.origin.replace(/^http/,'ws')+'/speech',{headers:{Authorization:'Bearer '+grant.grant}});await once(ws,'open');
- const messages=[];const done=new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('timeout')),5000);ws.on('message',data=>{messages.push(JSON.parse(data));if(messages.length===2){clearTimeout(timer);resolve();}});});
- ws.send('{"type":"start","app":"other","retention":true}');const pcm=Buffer.alloc(3200);for(let i=0;i<1600;i++)pcm.writeInt16LE(i-800,i*2);for(let i=0;i<64;i++)ws.send(pcm);ws.send('{"type":"stop","frames":64}');await done;
- assert.equal(messages[0].frames,64);assert.equal(messages[0].bytes,204800);assert.equal(messages[0].audio_hash,createHash('sha256').update(Buffer.concat(Array(64).fill(pcm))).digest('hex'));assert.equal(messages[0].retention,false);assert.equal(messages[0].text,'Synthetic speech.');assert.equal(messages[0].service_name,'Intention');assert.ok(!leaks(JSON.stringify(messages),config));captures.push({ws:messages});ws.close();await once(ws,'close');
-});
-test('unknown binary reply closes safely',async()=>{
- mode='grant';const grant=await (await request('/v1/speech/grants',{method:'POST'})).json();mode='binary';
- const ws=new WebSocket(proxy.origin.replace(/^http/,'ws')+'/speech',{headers:{Authorization:'Bearer '+grant.grant}});await once(ws,'open');ws.send('{"type":"start"}');ws.send('{"type":"stop","frames":0}');
- const [code]=await once(ws,'close');assert.equal(code,1003);
-});
-test('upstream WebSocket refusal stays generic and leaves server healthy',async()=>{
- mode='grant';const grant=await (await request('/v1/speech/grants',{method:'POST'})).json();mode='refused';
- const ws=new WebSocket(proxy.origin.replace(/^http/,'ws')+'/speech',{headers:{Authorization:'Bearer '+grant.grant}});
- const status=await new Promise((resolve,reject)=>{ws.once('unexpected-response',(_req,res)=>{res.resume();ws.terminate();resolve(res.statusCode);});ws.on('error',()=>{});setTimeout(()=>reject(Error('timeout')),1000).unref();});
- assert.equal(status,401);assert.equal((await request('/health')).status,200);
-});
-function signedGrant(kind) {
- const now=Math.floor(Date.now()/1000),claims={aud:'LegacyBrand-speech',sub:'00000000-0000-0000-0000-000000000001',iat:now,exp:now+300};
- if(kind==='ed25519'){
-  const payload=Buffer.from(JSON.stringify(claims)).toString('base64url');const {privateKey}=generateKeyPairSync('ed25519');
-  return 'v1.'+payload+'.'+sign(null,Buffer.from('LegacyBrand-speech-grant.v1.'+payload),privateKey).toString('base64url');
- }
- const header=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url');
- const payload=Buffer.from(JSON.stringify({...claims,device_id:'00000000-0000-0000-0000-000000000002',nonce:'synthetic-nonce-0000000000000000'})).toString('base64url');
- return header+'.'+payload+'.'+createHmac('sha256','synthetic-only-key').update(header+'.'+payload).digest('base64url');
+function request(path, options = {}) { return fetch(proxy.origin + path, {...options, redirect: 'manual'}); }
+async function connect(authorization = 'Bearer synthetic-grant') {
+  const headers = authorization === null ? {} : {Authorization: authorization};
+  const ws = new WebSocket(proxy.origin.replace('http:', 'ws:') + '/speech', {headers});
+  await once(ws, 'open'); return ws;
 }
-test('realistic signed grants cross HTTP and WebSocket within the new bounded wrapper limit',async()=>{
- for(const kind of ['ed25519','hs256']){
-  currentGrant=signedGrant(kind);assert.ok(currentGrant.length<=512);mode='grant';
-  const response=await request('/v1/speech/grants',{method:'POST'});assert.equal(response.status,201);const value=await response.json();
-  assert.ok(value.grant.length<=2048);if(kind==='hs256')assert.ok(value.grant.length>512);
-  assert.ok(!opaqueLeaks(value.grant,config));assert.equal(openGrant(value.grant,config,proxy.origin),currentGrant);
-  const ws=new WebSocket(proxy.origin.replace(/^http/,'ws')+'/speech',{headers:{Authorization:'Bearer '+value.grant}});await once(ws,'open');
-  const done=once(ws,'message');ws.send('{"type":"start"}');ws.send(Buffer.alloc(3200));ws.send('{"type":"stop","frames":1}');const [data]=await done;assert.equal(JSON.parse(data).bytes,3200);ws.close();await once(ws,'close');
- }
- currentGrant='fixture-grant';
- assert.throws(()=>sealGrant('x'.repeat(513),300,config,proxy.origin));
- assert.throws(()=>openGrant('x'.repeat(2049),config,proxy.origin));
+async function close(ws) { const ended = once(ws, 'close'); ws.close(); await ended; }
+
+test('configuration requires secure upstreams and explicit browser origins', () => {
+  assert.equal(settings(env).api.href, 'https://api.example/base');
+  for (const invalid of [{UPSTREAM_API: 'http://api.example'}, {UPSTREAM_SPEECH: 'ws://speech.example'},
+    {UPSTREAM_API: 'https://user:password@api.example'}, {UPSTREAM_SPEECH: 'wss://speech.example?key=synthetic'},
+    {ALLOWED_ORIGINS: 'https://client.example/path'}]) assert.throws(() => settings({...env, ...invalid}));
+  assert.throws(() => createProxy({...env, PROXY_PORT: '70000'}));
 });
-test('private commitments and source bindings fail closed without a modified accepted receipt',async()=>{
- mode='custom';
- for(const value of [{accepted:true,text:'I will deliver the LegacyBrand integration on Thursday'},{accepted:true,sources:[{source_id:'LegacyBrand-source',revision:'unchanged'}]},{accepted:true,sources:[{source_id:'unchanged',revision:'LegacyBrand-revision'}]}]){
-  nextResponse=value;const response=await request('/v1/writing/drafts/00000000-0000-0000-0000-000000000000');assert.equal(response.status,502);const result=await capture(response);assert.deepEqual(JSON.parse(result.body),{detail:'upstream_unavailable'});
- }
- nextResponse={accepted:true,text:'I will deliver the integration on Thursday',sources:[{source_id:'source-123',revision:'revision-456'}]};
- assert.deepEqual(await (await request('/v1/writing/drafts/00000000-0000-0000-0000-000000000000')).json(),nextResponse);
+
+test('HTTP forwards body bytes, path, query and authorization without edits', async () => {
+  responseFactory = undefined;
+  const body = Buffer.from(' { "message": "Synthetic text", "compose": {"add_signature": true} }\n');
+  const response = await request('/v1/writing/drafts?format=plain', {method: 'POST', body,
+    headers: {Authorization: 'Bearer synthetic-device', 'Content-Type': 'application/json', Cookie: 'synthetic-cookie', 'X-Provider': 'synthetic'}});
+  assert.equal(response.status, 200); assert.equal(await response.text(), 'ok');
+  assert.equal(forwarded.url, 'https://api.example/base/v1/writing/drafts?format=plain');
+  assert.deepEqual(forwarded.body, body);
+  assert.equal(forwarded.headers.authorization, 'Bearer synthetic-device');
+  assert.equal(forwarded.headers['content-type'], 'application/json');
+  assert.ok(!('cookie' in forwarded.headers)); assert.ok(!('x-provider' in forwarded.headers));
 });
-test('encoded signed payloads and JWTs are rejected without rewriting signed documents',async()=>{
- const token=signedGrant('hs256');mode='custom';
- for(const field of ['jwt','signed_payload','%6awt']){
-  nextResponse={[field]:token};assert.throws(()=>sanitize(nextResponse,config,proxy.origin));const response=await request('/v1/me');assert.equal(response.status,502);await capture(response);
- }
- assert.throws(()=>sanitize({signature:'safe',body:{token}},config,proxy.origin));
- const safe={signature:'opaque',body:'Safe signed content',retention:false};assert.equal(sanitize(safe,config,proxy.origin),safe);
+
+test('HTTP returns signed documents and grant bytes unchanged', async () => {
+  const body = ' {"grant":"v1.synthetic.signature","expires_in":300,"signed_payload":"synthetic-payload","signature":"synthetic-signature"}\n';
+  responseFactory = () => new Response(body, {status: 201, headers: {'Content-Type': 'application/json'}});
+  const response = await request('/v1/speech/grants', {method: 'POST'});
+  assert.equal(response.status, 201); assert.equal(await response.text(), body);
 });
-test('private path identifiers are rejected after recognizing the upstream host',async()=>{
- mode='custom';for(const suffix of ['LegacyBrand','%4cegacyBrand']){
-  nextResponse={resource_url:'https://api.legacy.example/v1/writing/'+suffix};const response=await request('/v1/me');assert.equal(response.status,502);await capture(response);
- }
+
+test('HTTP preserves binary responses and upstream errors', async () => {
+  const binary = Buffer.from([0, 255, 1, 128]);
+  responseFactory = () => new Response(binary, {headers: {'Content-Type': 'application/octet-stream'}});
+  let response = await request('/download'); assert.deepEqual(Buffer.from(await response.arrayBuffer()), binary);
+  const body = '{"detail":"A synthetic service error","retry":true}';
+  responseFactory = () => new Response(body, {status: 503, headers: {'Content-Type': 'application/json', 'Retry-After': '4'}});
+  response = await request('/status'); assert.equal(response.status, 503); assert.equal(await response.text(), body);
+  assert.equal(response.headers.get('retry-after'), '4');
 });
-test('unsafe speech content closes instead of rewriting the transcript',async()=>{
- currentGrant='fixture-grant';mode='grant';const value=await (await request('/v1/speech/grants',{method:'POST'})).json();mode='unsafe-text';
- const ws=new WebSocket(proxy.origin.replace(/^http/,'ws')+'/speech',{headers:{Authorization:'Bearer '+value.grant}});await once(ws,'open');let received=0;ws.on('message',()=>received++);ws.send('{"type":"start"}');ws.send('{"type":"stop","frames":0}');const [code]=await once(ws,'close');assert.equal(code,1008);assert.equal(received,0);
+
+test('redirects are returned unchanged and never followed by the proxy', async () => {
+  responseFactory = () => new Response(null, {status: 303, headers: {Location: 'https://api.example/next'}});
+  const response = await request('/next'); assert.equal(response.status, 303);
+  assert.equal(response.headers.get('location'), 'https://api.example/next');
 });
-test('a paused upstream cannot accumulate more than the one MiB send ceiling',async()=>{
- currentGrant='fixture-grant';mode='grant';const value=await (await request('/v1/speech/grants',{method:'POST'})).json();mode='paused';
- const ws=new WebSocket(proxy.origin.replace(/^http/,'ws')+'/speech',{headers:{Authorization:'Bearer '+value.grant}});await once(ws,'open');
- const target=upstreams.at(-1);let peak=0;const sample=setInterval(()=>{peak=Math.max(peak,target.bufferedAmount);},1);
- const closed=once(ws,'close');for(let i=0;i<512;i++)ws.send(Buffer.alloc(32768));
- const [code]=await Promise.race([closed,new Promise((_,reject)=>setTimeout(()=>reject(Error('queue ceiling did not close')),3000).unref())]);clearInterval(sample);
- assert.equal(code,1009);assert.ok(peak<=1024*1024);assert.ok(target.readyState===WebSocket.CLOSED||target.readyState===WebSocket.CLOSING);
+
+test('response framing and cookies do not contaminate the local connection', async () => {
+  responseFactory = () => new Response('unchanged', {headers: {'Content-Type': 'text/plain', 'Content-Length': '100', 'Set-Cookie': 's=synthetic', Server: 'synthetic'}});
+  const response = await request('/framing'); assert.equal(await response.text(), 'unchanged');
+  assert.notEqual(response.headers.get('content-length'), '100');
+  assert.equal(response.headers.get('set-cookie'), null); assert.equal(response.headers.get('server'), null);
 });
-test('queued sends stop at one MiB even before the transport reports backpressure',()=>{
- let calls=0,aborted;const target={bufferedAmount:0,send(){calls++;}};
- const relay=createBoundedForwarder(target,code=>{aborted=code;});for(let i=0;i<65;i++)relay.send(Buffer.alloc(16384),true);
- assert.equal(calls,64);assert.equal(aborted,1009);relay.dispose();
+
+test('empty admission and HEAD responses remain empty', async () => {
+  responseFactory = () => new Response(null, {status: 204});
+  let response = await request('/admission', {method: 'POST'}); assert.equal(response.status, 204); assert.equal(await response.text(), '');
+  responseFactory = () => new Response('not returned', {headers: {'Content-Type': 'text/plain'}});
+  response = await request('/head', {method: 'HEAD'}); assert.equal(await response.text(), '');
 });
-test('a stalled send callback is terminated even when new messages trickle in',async()=>{
- let aborted;const target={bufferedAmount:0,send(){}};const relay=createBoundedForwarder(target,code=>{aborted=code;},60);
- relay.send(Buffer.alloc(16),true);const trickle=setInterval(()=>relay.send(Buffer.alloc(16),true),10);await new Promise(resolve=>setTimeout(resolve,100));clearInterval(trickle);relay.dispose();assert.equal(aborted,1011);
+
+test('unconfigured startup reports health and never calls an upstream', async () => {
+  const temporaryPort = await freePort(); let calls = 0;
+  const empty = createProxy({PROXY_PORT: String(temporaryPort)}, {requestImpl: () => { calls++; throw Error('unreachable'); }});
+  empty.server.listen(temporaryPort, '127.0.0.1'); await once(empty.server, 'listening');
+  try {
+    assert.deepEqual(await (await fetch(empty.origin + '/health')).json(), {status: 'ok', configured: false});
+    assert.equal((await fetch(empty.origin + '/v1/me')).status, 503); assert.equal(calls, 0);
+  } finally { await new Promise(resolve => empty.server.close(resolve)); }
 });
-test('a rejected downstream upgrade leaves no orphan upstream',async()=>{
- currentGrant='fixture-grant';mode='grant';const value=await (await request('/v1/speech/grants',{method:'POST'})).json();const start=upstreams.length;
- const socket=net.connect(port,'127.0.0.1');await once(socket,'connect');let response='';socket.on('data',chunk=>{response+=chunk;});
- socket.write('GET /speech HTTP/1.1\r\nHost: 127.0.0.1:'+port+'\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nAuthorization: Bearer '+value.grant+'\r\n\r\n');
- await once(socket,'close');assert.match(response,/HTTP\/1\.1 400/);await new Promise(resolve=>setTimeout(resolve,50));
- assert.equal(upstreams.length,start+1);assert.equal(upstreams.at(-1).readyState,WebSocket.CLOSED);assert.equal(proxy.wss.clients.size,0);
+
+test('browser origin checks and preflight are enforced before forwarding', async () => {
+  forwarded = undefined;
+  let response = await request('/status', {headers: {Origin: 'https://other.example'}});
+  assert.equal(response.status, 403); assert.equal(forwarded, undefined);
+  response = await request('/status', {method: 'OPTIONS', headers: {Origin: 'https://client.example', 'Access-Control-Request-Method': 'POST'}});
+  assert.equal(response.status, 204); assert.equal(response.headers.get('access-control-allow-origin'), 'https://client.example');
+  assert.equal(forwarded, undefined);
+  responseFactory = () => new Response('ok');
+  response = await request('/status', {headers: {Origin: 'https://client.example'}});
+  assert.equal(response.status, 200); assert.equal(response.headers.get('access-control-allow-origin'), 'https://client.example');
 });
-test('percent-encoded token separators cannot hide private signed claims',async()=>{
- const payload=Buffer.from(JSON.stringify({aud:'LegacyBrand-speech',sub:'synthetic-account'})).toString('base64url');
- const jwt=Buffer.from('{"alg":"HS256"}').toString('base64url')+'.'+payload+'.synthetic-signature';
- mode='custom';
- for(const field of ['jwt','signed_payload','access_token']){
-  for(const token of [jwt,jwt.replaceAll('.','%2E'),jwt.replaceAll('.','%252e')]){
-   nextResponse={[field]:token};const response=await request('/v1/me');
-   assert.equal(response.status,502,field+' must reject private decoded claims');
-   const result=await capture(response);assert.deepEqual(JSON.parse(result.body),{detail:'upstream_unavailable'});
-  }
- }
-});
-test('safe opaque tokens retain their original percent encoding and bytes',async()=>{
- const payload=Buffer.from(JSON.stringify({aud:'Intention-speech',sub:'synthetic-account'})).toString('base64url');
- const safe=Buffer.from('{"alg":"HS256"}').toString('base64url')+'%2e'+payload+'%2Esynthetic_signature';
- mode='custom';
- for(const field of ['jwt','signed_payload','access_token']){
-  nextResponse={[field]:safe};const response=await request('/v1/me');assert.equal(response.status,200);assert.deepEqual(await response.json(),nextResponse);
- }
-});
-test('underscore-separated private identifiers fail closed in complete receipts and mapped URLs',async()=>{
- mode='custom';
- const receipt={request_id:'00000000-0000-0000-0000-000000000000',status:'ready',revision:1,accepted:true,text:'I will deliver the integration on Thursday.',sources:[{source_id:'LegacyBrand_source',revision:'revision_1'}]};
- const values=[receipt,{...receipt,sources:[{source_id:'safe_source',revision:'revision_LegacyBrand'}]},{...receipt,sources:[{source_id:'%4cegacyBrand_source',revision:'revision_1'}]},{resource_url:'https://api.legacy.example/v1/writing/LegacyBrand_source'},{resource_url:'https://api.legacy.example/v1/writing/%4cegacyBrand_source'},{LegacyBrand_status:'ready'}];
- for(const value of values){
-  nextResponse=value;const response=await request('/v1/writing/drafts/00000000-0000-0000-0000-000000000000');assert.equal(response.status,502);const result=await capture(response);assert.deepEqual(JSON.parse(result.body),{detail:'upstream_unavailable'});
- }
- assert.equal(cleanText('LegacyBrand_service',config),'Intention_service');
- nextResponse={...receipt,text:'Intention is intentional.',sources:[{source_id:'Intention_source',revision:'revision_Intention'}]};
- const safe=await request('/v1/writing/drafts/00000000-0000-0000-0000-000000000000');assert.equal(safe.status,200);assert.deepEqual(await safe.json(),nextResponse);
-});
-function privateToken() {
- return Buffer.from('{"alg":"HS256"}').toString('base64url')+'.'+Buffer.from(JSON.stringify({aud:'LegacyBrand-speech',iss:'https://api.legacy.example'})).toString('base64url')+'.synthetic_signature';
+
+async function rawRequest(line, headers = '', host = `127.0.0.1:${port}`) {
+  const socket = net.connect(port, '127.0.0.1'); await once(socket, 'connect');
+  let response = ''; socket.on('data', data => { response += data; });
+  const ended = once(socket, 'close');
+  socket.write(`${line}\r\nHost: ${host}\r\nConnection: close\r\n${headers}\r\n`);
+  await ended; return response;
 }
-async function probeSpeech(fields) {
- currentGrant='fixture-grant';mode='grant';const grant=await (await request('/v1/speech/grants',{method:'POST'})).json();speechFields=fields;
- const ws=new WebSocket(proxy.origin.replace(/^http/,'ws')+'/speech',{headers:{Authorization:'Bearer '+grant.grant}});await once(ws,'open');
- const messages=[];ws.on('message',data=>messages.push(JSON.parse(data)));
- const close=once(ws,'close'),timer=setTimeout(()=>ws.close(),60);
- ws.send('{"type":"start"}');ws.send('{"type":"stop","frames":0}');const [code]=await close;clearTimeout(timer);speechFields={};return {code,messages};
+
+test('absolute-form targets and non-local Host headers are refused', async () => {
+  forwarded = undefined;
+  assert.match(await rawRequest('GET https://other.example/ HTTP/1.1'), /HTTP\/1.1 400/);
+  assert.match(await rawRequest('GET //other.example/ HTTP/1.1'), /HTTP\/1.1 400/);
+  assert.match(await rawRequest('GET /status HTTP/1.1', '', 'other.example'), /HTTP\/1\.1 403/);
+  assert.equal(forwarded, undefined);
+});
+
+test('transport failures expose only a fixed local error', async () => {
+  responseFactory = () => { throw Error('synthetic credential-bearing transport error'); };
+  const response = await request('/failure'); assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), {detail: 'upstream_unavailable'});
+});
+
+test('oversized upstream responses are refused before returning a body', async () => {
+  responseFactory = () => new Response(Buffer.alloc(8 * 1024 * 1024 + 1));
+  const response = await request('/large'); assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), {detail: 'upstream_unavailable'});
+});
+
+test('WebSocket messages and authorization cross the bridge unchanged', async () => {
+  const ws = await connect('Bearer v1.synthetic.signature');
+  assert.equal(speechHeaders.authorization, 'Bearer v1.synthetic.signature');
+  const text = ' {"type":"start", "retention":true, "unknown":"Synthetic text"}\n';
+  let received = once(ws, 'message'); ws.send(text);
+  let [data, binary] = await received; assert.equal(data.toString(), text); assert.equal(binary, false);
+  const bytes = Buffer.from([0, 255, 4, 128, 64]); received = once(ws, 'message'); ws.send(bytes, {binary: true});
+  [data, binary] = await received; assert.deepEqual(data, bytes); assert.equal(binary, true);
+  received = once(ws, 'message'); ws.send('a non-JSON message');
+  [data] = await received; assert.equal(data.toString(), 'a non-JSON message'); await close(ws);
+});
+
+test('a malformed downstream handshake does not open an upstream', async () => {
+  const count = upstreams.length;
+  const socket = net.connect(port, '127.0.0.1'); await once(socket, 'connect');
+  let response = ''; socket.on('data', data => { response += data; }); const ended = once(socket, 'close');
+  socket.write(`GET /speech HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nAuthorization: Bearer synthetic-grant\r\n\r\n`);
+  await ended; assert.match(response, /HTTP\/1.1 400/); assert.equal(upstreams.length, count);
+});
+
+test('an upstream handshake refusal is returned without leaving a connection', async () => {
+  speechMode = 'refused';
+  const ws = new WebSocket(proxy.origin.replace('http:', 'ws:') + '/speech', {headers: {Authorization: 'Bearer synthetic-grant'}});
+  const status = new Promise(resolve => ws.once('unexpected-response', (_request, response) => { response.resume(); resolve(response.statusCode); }));
+  ws.on('error', () => {});
+  assert.equal(await status, 401); ws.terminate(); speechMode = 'echo';
+});
+
+test('queued sends are capped even before bufferedAmount reports them', () => {
+  let calls = 0, aborted;
+  const target = {bufferedAmount: 0, send() { calls++; }};
+  const relay = createBoundedForwarder(target, code => { aborted = code; });
+  for (let i = 0; i < 65; i++) relay.send(Buffer.alloc(16384), true);
+  assert.equal(calls, 64); assert.equal(aborted, 1009); assert.equal(MAX_QUEUED_BYTES, 1024 * 1024); relay.dispose();
+});
+
+test('new messages cannot postpone a stalled send deadline', async () => {
+  let aborted; const target = {bufferedAmount: 0, send() {}};
+  const relay = createBoundedForwarder(target, code => { aborted = code; }, 60);
+  relay.send(Buffer.alloc(16), true); const trickle = setInterval(() => relay.send(Buffer.alloc(16), true), 10);
+  await new Promise(resolve => setTimeout(resolve, 110)); clearInterval(trickle); relay.dispose(); assert.equal(aborted, 1011);
+});
+
+async function rawBodyRequest(origin, method, body, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(new URL('/bytes', origin), {method, headers: {...headers, 'Content-Length': body.length}}, response => {
+      const chunks = []; response.on('data', chunk => chunks.push(chunk));
+      response.on('error', reject);
+      response.on('end', () => resolve({status: response.statusCode, headers: response.headers, body: Buffer.concat(chunks)}));
+    });
+    request.on('error', reject); request.end(body);
+  });
 }
-test('unknown token fields and nested token containers receive the same encoded inspection over HTTP and WS',async()=>{
- const token=privateToken();
- for(const fields of [{id_token:token},{refresh_token:token},{access_token:{value:token}},{future_credentials:[{value:token}]}]){
-  mode='custom';nextResponse=fields;const response=await request('/v1/me');assert.equal(response.status,502);await capture(response);
-  const speech=await probeSpeech(fields);assert.equal(speech.code,1008);assert.equal(speech.messages.length,0);
- }
-});
-test('valid percent runs are inspected even beside literal percent characters',async()=>{
- mode='custom';nextResponse={text:'Legacy%42rand launch is 90% complete'};
- let response=await request('/v1/me');assert.equal(response.status,502);await capture(response);
- assert.equal(cleanText('Legacy%42rand launch is 90% complete',config),'Intention launch is 90% complete');
- const token=privateToken().replaceAll('.','%2E')+'%';nextResponse={id_token:token};response=await request('/v1/me');assert.equal(response.status,502);await capture(response);
- const speech=await probeSpeech({id_token:token});assert.equal(speech.code,1008);assert.equal(speech.messages.length,0);
-});
-test('signed documents cannot bypass disabled capability policy through direct or nested fields',async()=>{
- for(const fields of [{signature:'opaque',oauth_url:'https://external.example/authorize'},{signature:'opaque',upload_url:'https://external.example/upload'},{signature:'opaque',body:{upload_url:'https://external.example/upload'}},{signature:'opaque',body:[{authorization_url:'https://external.example/authorize'}]}]){
-  mode='custom';nextResponse=fields;const response=await request('/v1/me');assert.equal(response.status,502);await capture(response);
-  const speech=await probeSpeech(fields);assert.equal(speech.code,1008);assert.equal(speech.messages.length,0);
- }
-});
-test('safe unknown token fields retain original bytes and signed disabled capabilities remain inert',async()=>{
- const safe=Buffer.from('{"aud":"Intention-speech"}').toString('base64url')+'%2Eopaque%';
- const fields={id_token:safe,refresh_token:safe,nested:{access_token:{value:safe}},text:'Launch is 90% complete'};
- mode='custom';nextResponse=fields;const response=await request('/v1/me');assert.equal(response.status,200);assert.deepEqual(await response.json(),fields);
- const speech=await probeSpeech(fields);assert.equal(speech.messages[0].id_token,safe);assert.deepEqual(speech.messages[0].nested,fields.nested);
- const signed={signature:'safe',upload_url:null,oauth_url:null,retention:false};assert.equal(sanitize(signed,config,proxy.origin),signed);
-});
-test('retained response headers drop encoded private identities individually',async()=>{
- mode='custom';nextResponse={status:'ok'};
- const encoded=[Buffer.from('LegacyBrand').toString('base64'),Buffer.from('https://api.legacy.example/private').toString('base64url')];
- for(const name of ['content-language','retry-after']){
-  for(const value of encoded){
-   nextHeaders={'Content-Language':'en-US','Retry-After':'120',[name]:value};
-   const response=await request('/v1/me');assert.equal(response.status,200);assert.equal(response.headers.get(name),null);
-   const kept=name==='content-language'?'retry-after':'content-language';assert.equal(response.headers.get(kept),kept==='retry-after'?'120':'en-US');await capture(response);
+
+test('GET and HEAD bodies reach the configured service unchanged', async () => {
+  const body = Buffer.from('synthetic request body'); responseFactory = () => new Response('ok');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await rawBodyRequest(proxy.origin, method, body);
+    assert.equal(response.status, 200); assert.equal(forwarded.method, method); assert.deepEqual(forwarded.body, body);
   }
- }
- nextHeaders={};
 });
-test('retained safe headers keep their original values',async()=>{
- mode='custom';nextResponse={status:'ok'};nextHeaders={'Content-Language':'en-US, fr','Retry-After':'Wed, 21 Oct 2026 07:28:00 GMT'};
- const response=await request('/v1/me');assert.equal(response.status,200);assert.equal(response.headers.get('content-language'),'en-US, fr');assert.equal(response.headers.get('retry-after'),'Wed, 21 Oct 2026 07:28:00 GMT');await capture(response);nextHeaders={};
+
+test('compressed request and response bytes survive the native HTTP transport', async () => {
+  const encoded = gzipSync(Buffer.from('{"message":"Synthetic compression fixture"}'));
+  let arrived, arrivedHeaders;
+  const service = http.createServer(async (req, res) => {
+    const chunks = []; for await (const chunk of req) chunks.push(chunk);
+    arrived = Buffer.concat(chunks); arrivedHeaders = req.headers;
+    res.writeHead(200, {'Content-Type': 'application/json', 'Content-Encoding': 'gzip'}); res.end(encoded);
+  });
+  service.listen(0, '127.0.0.1'); await once(service, 'listening');
+  const temporaryPort = await freePort();
+  const local = createProxy({...env, PROXY_PORT: String(temporaryPort)}, {
+    requestImpl: (_url, options) => requestUpstream(new URL(`http://127.0.0.1:${service.address().port}/bytes`), options, http.request)
+  });
+  local.server.listen(temporaryPort, '127.0.0.1'); await once(local.server, 'listening');
+  try {
+    const response = await rawBodyRequest(local.origin, 'POST', encoded, {'Content-Type': 'application/json', 'Content-Encoding': 'gzip'});
+    assert.deepEqual(arrived, encoded); assert.equal(arrivedHeaders['content-encoding'], 'gzip');
+    assert.deepEqual(response.body, encoded); assert.equal(response.headers['content-encoding'], 'gzip');
+    await rawBodyRequest(local.origin, 'GET', encoded); assert.deepEqual(arrived, encoded);
+    await rawBodyRequest(local.origin, 'HEAD', encoded); assert.deepEqual(arrived, encoded);
+  } finally {
+    await new Promise(resolve => local.server.close(resolve)); await new Promise(resolve => service.close(resolve));
+  }
 });
-test('captured synthetic responses have zero configured private identifiers',async()=>{assert.ok(!leaks(JSON.stringify(captures),config));if(process.env.PROXY_TEST_EVIDENCE)await writeFile(process.env.PROXY_TEST_EVIDENCE,JSON.stringify({fixtureOnly:true,privateIdentifierMatches:0,captures},null,2));});
+
+test('an empty stalled send still has a progress deadline', async () => {
+  let aborted; const target = {bufferedAmount: 0, send() {}};
+  const relay = createBoundedForwarder(target, code => { aborted = code; }, 40);
+  relay.send(Buffer.alloc(0), false); await new Promise(resolve => setTimeout(resolve, 80));
+  relay.dispose(); assert.equal(aborted, 1011);
+});
+
+test('empty messages have a finite queue bound', () => {
+  let calls = 0, aborted; const target = {bufferedAmount: 0, send() { calls++; }};
+  const relay = createBoundedForwarder(target, code => { aborted = code; });
+  for (let i = 0; i <= 1024; i++) relay.send(Buffer.alloc(0), false);
+  relay.dispose(); assert.equal(calls, 1024); assert.equal(MAX_QUEUED_MESSAGES, 1024); assert.equal(aborted, 1009);
+});
+
+test('invalid subprotocol offers are refused before opening the upstream', async () => {
+  const count = upstreams.length;
+  for (const protocols of ['duplicate, duplicate', 'one,,two', 'one two', 'one' + String.fromCharCode(160)]) {
+    const socket = net.connect(port, '127.0.0.1'); await once(socket, 'connect');
+    let response = ''; socket.on('data', data => { response += data; }); const ended = once(socket, 'close');
+    socket.write(`GET /speech HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: MDEyMzQ1Njc4OWFiY2RlZg==\r\nSec-WebSocket-Protocol: ${protocols}\r\nAuthorization: Bearer synthetic-grant\r\n\r\n`, 'latin1');
+    await ended; assert.match(response, /HTTP\/1\.1 400/);
+  }
+  assert.equal(upstreams.length, count);
+});
+
+test('the same selected subprotocol is used on both WebSocket connections', async () => {
+  const ws = new WebSocket(proxy.origin.replace('http:', 'ws:') + '/speech', ['speech-v1', 'speech-v2'], {headers: {Authorization: 'Bearer synthetic-grant'}});
+  await once(ws, 'open'); assert.equal(ws.protocol, 'speech-v1');
+  assert.equal(upstreams.at(-1).protocol, 'speech-v1'); await close(ws);
+});
+
+
+test('ordinary OPTIONS requests keep their body and reach upstream', async () => {
+  responseFactory = () => new Response('ordinary OPTIONS');
+  const body = Buffer.from('synthetic OPTIONS body');
+  const response = await rawBodyRequest(proxy.origin, 'OPTIONS', body, {Origin: 'https://client.example'});
+  assert.equal(response.status, 200); assert.equal(forwarded.method, 'OPTIONS'); assert.deepEqual(forwarded.body, body);
+});
+
+test('native HEAD, 204 and 304 response streams finish and release their connections', async () => {
+  const service = http.createServer((req, res) => {
+    const status = req.url.endsWith('/204') ? 204 : req.url.endsWith('/304') ? 304 : 200;
+    res.writeHead(status); res.end('synthetic representation');
+  });
+  service.listen(0, '127.0.0.1'); await once(service, 'listening');
+  const agent = new http.Agent({keepAlive: true, maxSockets: 1});
+  const observed = [], temporaryPort = await freePort();
+  const local = createProxy({...env, PROXY_PORT: String(temporaryPort)}, {
+    requestImpl: async (url, options) => {
+      const target = new URL(`http://127.0.0.1:${service.address().port}${url.pathname}`);
+      const response = await requestUpstream(target, options, (address, opts, done) => http.request(address, {...opts, agent}, done));
+      observed.push(response.body); return response;
+    }
+  });
+  local.server.listen(temporaryPort, '127.0.0.1'); await once(local.server, 'listening');
+  try {
+    for (const [method, path] of [['HEAD', '/head'], ['GET', '/204'], ['GET', '/304']]) {
+      await new Promise((resolve, reject) => {
+        const req = http.request(new URL(path, local.origin), {method}, res => { res.resume(); res.on('end', resolve); res.on('error', reject); });
+        req.on('error', reject); req.end();
+      });
+      assert.equal(observed.at(-1).readableEnded, true);
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(Object.values(agent.sockets).flat().length, 0);
+    }
+  } finally {
+    agent.destroy(); await new Promise(resolve => local.server.close(resolve)); await new Promise(resolve => service.close(resolve));
+  }
+});
+
+test('downstream graceful close code and reason reach the upstream', async () => {
+  const ws = await connect(); const ended = once(fixtureConnections.at(-1), 'close');
+  ws.close(1000, 'done');
+  const [code, reason] = await ended; assert.equal(code, 1000); assert.equal(reason.toString(), 'done');
+});
+
+test('upstream argument-free close reaches downstream without an abnormal code', async () => {
+  const ws = await connect(); const ended = once(ws, 'close'); fixtureConnections.at(-1).close();
+  const [code, reason] = await ended; assert.equal(code, 1005); assert.equal(reason.length, 0);
+});
+
+test('upstream graceful close code and reason reach downstream', async () => {
+  const ws = await connect(); const ended = once(ws, 'close'); fixtureConnections.at(-1).close(1013, 'retry later');
+  const [code, reason] = await ended; assert.equal(code, 1013); assert.equal(reason.toString(), 'retry later');
+});
+
+test('a peer that never acknowledges a graceful close is terminated', async () => {
+  const ws = await connect(); const upstream = upstreams.at(-1), peer = fixtureConnections.at(-1);
+  peer.pause(); await close(ws); await new Promise(resolve => setTimeout(resolve, 350));
+  assert.equal(upstream.readyState, WebSocket.CLOSED); peer.resume(); peer.terminate();
+});
+
+
+test('WebSocket authorization scheme and length belong to the configured service', async () => {
+  for (const value of ['bearer synthetic-grant', 'Basic ' + Buffer.from('synthetic:fixture').toString('base64'), 'Bearer ' + 'x'.repeat(3000), null]) {
+    const ws = await connect(value);
+    assert.equal(speechHeaders.authorization, value ?? undefined);
+    await close(ws);
+  }
+});
+
+test('a rejected half-open client cannot retain the server socket', async () => {
+  const accepted = once(proxy.server, 'connection');
+  const socket = net.connect({port, host: '127.0.0.1', allowHalfOpen: true});
+  await once(socket, 'connect'); const [serverSocket] = await accepted;
+  let response = ''; socket.on('data', data => { response += data; });
+  const ended = once(socket, 'end');
+  try {
+    socket.write(`GET /speech HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\n\r\n`);
+    await ended; assert.match(response, /HTTP\/1\.1 400/);
+    await new Promise(resolve => setTimeout(resolve, 350)); assert.equal(serverSocket.destroyed, true);
+  } finally { socket.destroy(); }
+});
